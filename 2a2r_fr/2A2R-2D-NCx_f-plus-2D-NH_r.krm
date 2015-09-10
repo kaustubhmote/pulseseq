@@ -1,0 +1,218 @@
+;# ####### 2A2R-(2D-N(Ca)Cx_f , 2D-NHn_r) ##########
+;# #################################################
+
+;# ######################### parameters ##########################
+;# --------------- CHANNELS --------------------------------------
+;f1 : 13C
+;f2 : 1H
+;f3 : 15N
+;# ---------------------------------------------------------------
+;# --------------- WINDOWED PMLG SETTINGS ------------------------
+;spnam1=m5m
+;put fw as 6e6 or something very high
+;l11 : 16
+;p5 : pmlg pulse per phase
+;p9 : will set d3, part of the window 
+;pl13 : SP1, PMLG decoupling power level (usuall 80-90 kHz)
+;# ---------------------------------------------------------------
+;# ------------- PULSE SETTINGS ----------------------------------
+;p1 : 1H initial 90 deg pulse @ pl1
+;p2 : 90 deg pulse on 13C @ pl2
+;p3 : 90 deg pulse on 15N @ pl3
+;p15 : Contact time for initial cross-polarization from 1H to 13C and 15N
+;p23 : SPECIFIC CP contact time (bidirectional CP after t1 evolution for 15N and 13C)
+;p18 : selective (short) CP from 15N to 1H
+;p31 : pulse for rCW-AiA decoupling, set to 0.98*rotor-cycle
+;p32 : 180 pulse on 1H @ pl12
+;# ----------------------------------------------------------------
+;# ------------- POWER LEVELS -------------------------------------
+;pl1 : 1H, 90 pulse @ length p1
+;pl2 : 13C, 90 pulse @ length p2
+;pl3 : 15N, 90 pulse @ length p3
+;pl7 : 1H, water suppression, usually 10-20 kHz
+;pl12 : 1H, decoupling, 100 kHz
+;sp0 : 1H, initial CP to 13C and 15N, @ p15 (ramp)
+;pl16 : 13C, initial CP tfrom 1H, @ p15
+;pl17 : 15N, initial CP tfrom 1H, @ p15
+;sp6 : 13C, SPECIFIC CP @ p23 (ramp)
+;pl23 : 15N. SPECIFIC CP @ p23
+;sp3 : 1H, selective (short) CP from 13C to 1H @ p17 (ramp)
+;pl24 : 13C, selective (short) CP from 13C to 1H @ p17 (ramp)
+;sp5 : 1H, selective (short) CP from 15N to 1H @ p18 (ramp)
+;pl25 : 15N, selective (short) CP from 15N to 1H @ p18 (ramp)
+;# ----------------------------------------------------------------
+;# --------------- delays -----------------------------------------
+;d1 : recycle delay
+;d2 : indirect evolution start
+;d10 : water suppression
+;d20 : CC mixing
+;#----------------------------------------------------------------
+;# ------------- LOOPS, ETC --------------------------------------
+;cnst31 : MAS frequency
+;# ---------------------------------------------------------------
+
+
+;# ---------- definitions ----------------------------------------
+;#----------- include files --------------------------------------
+
+#include <Avancesolids_multrec.incl>
+#include <Delayssolids_multrec.incl>
+
+;#------------ indirect evolution --------------------------------
+
+  "in2=inf1"
+
+  define loopcounter ni
+  "ni=td1/2"
+
+;#------------- decoupling ---------------------------------------
+  "d31=1/cnst31" ;#rCW-AiA
+  "p31=0.98*d31" ;#rCW-AiA
+
+;# ------------- pmlg acquisition --------------------------------
+  "sp1=pl13"      
+  "d9=0.1u*(l11)" 
+  "d3=p9"
+  "p10=10*p5"        
+
+  define delay dX
+  "dX=d3-d9-0.1u"
+
+  define delay cycle
+  "cycle=2*(d3 + p10 + d9)"
+
+  define loopcounter count
+  "count=7m/cycle"       
+
+  "blktr2 = 0.7u"  
+
+;# --------------------------------------------------------------------
+
+;# ----------------- PULSE SEQUENCE STARTS ----------------------------
+
+1 ze1
+  ze2
+
+2 d1
+
+;# ---first 1H 90 at pl1
+  10u pl1:f2
+  (p1 pl1 ph1):f2
+
+;# ---Cross-polarization
+  (p15:sp0 ph15):f2 (p15 pl17 ph17):f3
+
+;# ---Water suppression
+  0.1u pl7:f2
+  0.1u cpds3:f2 
+  (p2 pl2 ph20):f1 (p3 pl3 ph24):f3
+  d10
+  0.1u do:f2
+
+;# ---indirect evolution
+  0.1u pl12:f2
+  0.1u cpds2:f2   
+  (p2 pl2 ph21):f1 (p3 pl3 ph25):f3 
+  d2
+  0.1u do:f2
+
+;# ---bidirectional specific cp
+  0.1u cw:f2
+  (p23:sp6 ph27):f1 (p23 pl23 ph26):f3 
+
+;# ---store 15N
+  (p3 pl3 ph22):f3
+  0.1u do:f2
+
+;# ---CC mixing, for N(Ca)Cx or N(Co)Cx experiments
+  0.1u pl20:f2
+  (p2 pl2 ph18):f1
+  0.1u cpds6:f2
+  d20
+  0.1u do:f2
+  (p2 pl2 ph19):f1
+
+;# ---13C acquisition on reciever 1
+  0.1u pl12:f2
+  0.1u cpds2:f2
+  ACQ_START1(ph4,ph3)
+  aq1 DWELL_GEN1
+  10u eoscnp1
+
+;# ---Reciever 2 prep
+  STARTADC2
+  RESETPHASE2
+  1u rpp10
+
+;# ---bring back stored 15N magnetization
+  (p3 pl3 ph23):f3
+  0.1u do:f2
+
+;# ---cp from 15N to 1H
+  (p18:sp5 ph28):f2 (p18 pl25 ph29):f3
+
+;# ---detection CN"H"
+5 dX
+  d9 RG_ON2
+  sample2   
+  (p10:sp1  ph10^):f2
+  dX
+  d9 RG_ON2
+  sample2
+  (p10:sp1  ph10^):f2
+  lo to 5 times count 
+  100u rcyc2=2
+
+;# ---write files
+  1m wr1 #0 if1 #0 zd1
+  1m wr2 #1 if2 #1 zd2
+
+;# ---quadrature loop
+  1m ip25
+  lo to 2 times 2
+
+:# ---states loop
+  id2
+  lo to 2 times ni
+
+;#------------- ends ----------------------------------------
+
+
+
+
+
+
+ph0  = 0
+ph1  = 0 2
+ph15 = 1
+ph16 = 0
+ph17 = 0
+
+ph10 = 0 2       
+
+ph20 = 3
+ph21 = 1
+
+ph22 = 1
+ph23 = 1
+
+ph24 = 1
+ph25 = 3
+
+ph18 = 3
+ph19 = 1
+
+ph27 = 0 0 0 0 2 2 2 2
+ph26 = 0 0 2 2
+
+
+ph28 = 0 0 1 1 2 2 3 3
+ph29 = 0
+
+ph4 = 0
+ph3 = 3 1 1 3 1 3 3 1
+
+ph30 = 0
+ph31 = 0 2 1 3 2 0 3 1
+-------------------------------------------------------------------------
+
