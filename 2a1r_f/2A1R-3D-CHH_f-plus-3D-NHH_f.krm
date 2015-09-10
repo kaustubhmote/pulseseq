@@ -1,0 +1,380 @@
+;# ###################################################################################
+;# ####### 2A1R-(2D-CxHxHx_f , 2D-NHnHn_f) ###########################################
+;# ###################################################################################
+
+;#--------------------------------- WINDOWED PMLG SETTINGS -----------------------------------------------------
+;# windowed pmlg for the analogue mode, using sharp(standard)
+; spnam1=m5m
+;# shape consists of 10 sclices of length 2*p5/10, set
+;# shape duration recalculated so slice is a multiple of 100 ns
+;#   set l11=number of oversampled datapoints to be sampled, 8-32 depending on
+;#   available window, check acqu in ased for sensible value.
+;#   l11 was kept at 16
+;#   the window delay is determined by d3, give d3 in MICROSECONDS, typically 2us
+;#   put fw as 6e6 or something very high
+;#   Parameters to optimise are l11 (gives d9), d3, O1, and p5
+;#   l11 and d3 together determine the window duration through acqu
+;#   Fix the l11 to 16 and vary only d3
+;#
+;l11   : =16
+;p5    : 2.0us (optimize from 1.5 to 2.2us for following changes: probe, SP1, MAS-speed )
+;p9    : d3 = 1.5us (optimize for each probe)
+;sp1   : PMLG decoupling power level (usually 80-90 kHz)
+;pl13  : =sp1
+;cnst7 : Change in frq in Hz to move from the initial O1 to the O1 optimal for 1H detection of 13C-edited spectra
+;cnst8 : Change in frq in Hz to move from the initial O1 to the O1 optimal for 1H detection of 15N-edited spectra
+;#-----------------------------------------------------------------------------------------
+
+;# ---------------- PULSE SETTINGS------------------------------------------
+;p1  : 1H initial 90 deg pulse @ pl1
+;p15 : Contact time for initial cross-polarization from 1H to 13C and 15N
+;p2  : 90 deg pulse on 13C @ pl2
+;p3  : 90 deg pulse on 15N @ pl3
+;p17 : selective (short) CP from 13C to 1H	(set to 50us)
+;p18 : selective (short) CP from 15N to 1H (set to 200us)
+;#----------------------------------------------------------------------
+
+;#------------------ POWER LEVELS ----------------------------
+;pl1  : 1H, 90 pulse @ length p1
+;pl2  : 13C, 90 pulse @ length p2
+;pl3  : 15N, 90 pulse @ length p3
+;pl7  : 1H, H2O saturation power, usually 20-40 kHz
+;pl12 : 1H, decoupling power during indirect evolution
+;sp0  : 1H, initial CP to 13C and 15N, @ p15 (ramp)
+;pl16 : 13C, initial CP tfrom 1H, @ p15
+;pl17 : 15N, initial CP tfrom 1H, @ p15
+;sp3  : 1H, selective (short) CP from 13C to 1H @ p17 (ramp)
+;pl21 : 13C, selective (short) CP from 13C to 1H @ p17 (ramp)
+;sp5  : 1H, selective (short) CP from 15N to 1H @ p18 (ramp)
+;pl22 : 15N, selective (short) CP from 15N to 1H @ p18 (ramp)
+;pl13 : SP1, wPMLG power level for 13C/15N edited experiment
+; #--------------------------------------------------------------
+
+; #---------------------- LOOPS, ETC --------------------------------------
+;#td1 :    Set TD1 to be equal to twice the number of increments you would 'normally' give.
+;#         This is because the statement 'eosc' and 'eoscnp' increment numbers that go on the screen, and even though all
+;#         data is recorded, only half will be shown if you give the 'correct' number of increments.
+;#         Hence, TD1 is set to 2*(Real TD1) and the actual loop variable (in this case, ST1CNT) is set to 'TD1/4'
+;#         instead of the usual TD1/2
+;l5 :     number of 15N-edited experiments to run for each 13C edited experiment (1-10), input for "numN"
+;cnst13 : ratio of 13C SW to 15N SW
+;in2 :    indirect dwell time for 13C, note that 15N dwell time is automatically set to cnst13*in2
+;l4 :     indirect loop counter, make sure it is '1' at the beginning of the program
+;dwell_1H : input dwell time for H direct detection, =(dX+p10+d9+0.1u)
+; #--------------------------------------------------------------------------------------
+
+; #-------------- DEFINITIONS --------------------------------------------
+#include <Avancesolids.incl>	 
+#include <Delayssolids.incl>
+
+  "sp1=pl13" 
+  "d9=0.1u*(l11)"
+  "d3=p9" 
+  "p10=10*p5"
+
+  define delay dX
+  "dX=d3-d9-0.1u"
+
+  define delay window
+  "window = d3+d9"
+
+  define delay cycle
+  "cycle=2*(dX + p10 + d9 + d9 + 0.1u )" 
+
+  define loopcounter count
+  "count=aq/cycle"
+
+  define delay dwell_1H
+  "dwell_1H = cycle/2"
+
+  "cnst6=2/cycle"
+
+  "blktr2 = 0.7u"  
+  "anavpt=l11"  
+
+; #-------------- 2D staements ---------------------------------
+  define loopcounter ni
+  "ni=td1/4"
+
+  define loopcounter ni2
+  "ni2=td2/4"
+
+  define loopcounter numN
+  "numN=l5"
+  define delay dN
+  "dN=in2"
+
+  "l4=1"
+
+
+; #----------------- PULSE SEQUENCE STARTS --------------------
+
+ 
+1 ze	
+2 0.1u do:f2
+  d1
+
+; #---set power and prepare for windowed acq. buffer pos 1
+  10u pl1:f1  st0  
+  10u reset1:f1  
+  STARTADC  
+  RESETPHASE 
+  1u rpp10
+
+; #--initial 90 on 1H
+  (p1 pl1 ph1):f1 	
+
+; #---Sim-CP
+  0.1u pl15:f1 
+  (p15:sp0 ph15):f1 (p15 pl16 ph16):f2 (p15 pl17 ph17):f3	
+
+;# ---water suppression
+  1u pl7:f1 pl2:f2 pl3:f3					
+  1u cpds3:f1
+  (p2 pl2 ph20):f2 (p3 pl3 ph22):f3
+  d10
+  100u  fq=cnst7:f1     
+  (p2 ph21):f2
+  0.1u do:f1
+
+; #---13C evolution with N-C J decoupling
+  if "d2 < 5u" goto label20
+  1u pl12:f1		
+  1u cpds2:f1		
+  (center (d2) (p3*2 pl3 ph22):f3)
+  0.1u do:f1
+
+; #---change 1H offset for 1H connected to 13Cs
+
+
+; #---CP from 13C to 1H
+label20,																							
+  (p17:sp3 ph18):f1 (p17 pl21 ph19):f2
+
+3 window   
+  (p10:sp1  ph10^):f2
+  window
+  (p10:sp1  ph10^):f2
+  lo to 3 times l0
+
+; #---HH mixing
+  (p2 pl2 ph5):f2
+  d21
+  (p2 pl2 ph6):f2
+
+; #---windowed acq on 1H 
+4 dX 
+  d9 RG_ON
+  sample												
+  (p10:sp1  ph10^):f1	
+  dX  
+  d9 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  lo to 4 times count
+  100u eoscnp										
+
+; #---restart windowed acq parameters
+  100u st
+  STARTADC	
+  RESETPHASE
+  1u rpp10
+
+; #-dephase 1H
+label30,
+  6m 
+  (p1 pl1 ph27):f1
+  6m 
+
+; #---shift 1H offset to one appropriate for amide 1H
+  100u  fq=cnst8:f1  
+
+; #---bring back 15N
+  0.1u pl12:f1					
+  0.1u cpds2:f1 
+  (p3 pl3 ph23):f3
+	
+;# loop structure for multiple 15N acquisitions starts
+;# find which increment you are currently running 
+
+  if "ni <= 1" goto label11	
+	
+  if "l4 <= 1*ni/numN" goto label0
+	 
+  if "l4 <= 2*ni/numN & l4 > 1*ni/numN" goto label1 
+	
+  if "l4 <= 3*ni/numN & l4 > 2*ni/numN" goto label2
+
+  if "l4 <= 4*ni/numN & l4 > 3*ni/numN" goto label3
+
+  if "l4 <= 5*ni/numN & l4 > 4*ni/numN" goto label4
+
+  if "l4 <= 6*ni/numN & l4 > 5*ni/numN" goto label5
+
+  if "l4 <= 7*ni/numN & l4 > 6*ni/numN" goto label6
+
+  if "l4 <= 8*ni/numN & l4 > 7*ni/numN" goto label7
+
+  if "l4 <= 9*ni/numN & l4 > 8*ni/numN" goto label8
+
+  if "l4 <= 10*ni/numN & l4 > 9*ni/numN" goto label9
+
+;# ---Depending on the increment number and l5, 
+;# ---one of the following 10 delays will be executed as 
+;# ---indirect evolution of 15N with NC-J decoupling
+	
+label0,
+  define delay dN0	
+  "dN0=cnst13*d2"	
+  (center (dN0) (p2*2 pl2 ph21):f2)
+  goto label11
+	
+
+label1,
+  define delay dN1	
+  "dN1=cnst13*(d2-1.0*dN*ni/numN)"
+  if "dN1 < 2u" goto label11
+  (center (dN1) (p2*2 pl2 ph21):f2)
+  goto label11	
+	 
+label2,
+  define delay dN2	
+  "dN2=cnst13*(d2-2.0*dN*ni/numN)"
+  if "dN2 < 2u" goto label11
+  (center (dN2) (p2*2 pl2 ph21):f2)
+  goto label11
+
+label3,
+  define delay dN3	
+  "dN3=cnst13*(d2-3.0*dN*ni/numN)"
+  if "dN3 < 2u" goto label11
+  (center (dN3) (p2*2 pl2 ph21):f2)	
+  goto label11																
+
+label4,
+  define delay dN4	
+  "dN4=cnst13*(d2-4.0*dN*ni/numN)"
+  if "dN4 < 2u" goto label11
+  (center (dN4) (p2*2 pl2 ph21):f2)	
+  goto label11																			
+
+label5,
+  define delay dN5	
+  "dN5=cnst13*(d2-5.0*dN*ni/numN)"
+  if "dN5 < 2u" goto label11
+  (center (dN5) (p2*2 pl2 ph21):f2)	
+  goto label11																			
+
+label6,
+  define delay dN6	
+  "dN6=cnst13*(d2-6.0*dN*ni/numN)"
+  if "dN6 < 2u" goto label11
+  (center (dN6) (p2*2 pl2 ph21):f2)	
+  goto label11																			
+
+label7,
+  define delay dN7	
+  "dN7=cnst13*(d2-7.0*dN*ni/numN)"
+  if "dN7 < 2u" goto label11
+  (center (dN7) (p2*2 pl2 ph21):f2)	
+  goto label11																				
+
+label8,
+  define delay dN8	
+  "dN8=cnst13*(d2-8.0*dN*ni/numN)"
+  if "dN8 < 2u" goto label11
+  (center (dN8) (p2*2 pl2 ph21):f2)	
+  goto label11																					
+label9,
+  define delay dN9	
+  "dN9=cnst13*(d2-9.0*dN*ni/numN)"
+  if "dN9 < 2u" goto label11
+  (center (dN9) (p2*2 pl2 ph21):f2)	
+  goto label11																			
+
+label11,
+  0.1u do:f1
+
+
+; #--CP back to 1H from 15N
+  (p18:sp5 ph28):f1 (p18 pl22 ph29):f3	
+
+
+5 window   
+  (p10:sp1  ph10^):f2
+  window
+  (p10:sp1  ph10^):f2
+  lo to 5 times l0
+
+;# ---HH mixing
+  (p2 pl2 ph5):f2
+  d22
+  (p2 pl2 ph6):f2
+
+
+; #---detect 1H	
+6 dX 
+  d9 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  dX
+  d9 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  lo to 6 times count
+
+  100u fq=0:f1
+
+  10u rcyc=2
+
+  1m wr #0 if #0 zd
+  1m ip21								
+  1m ip23
+  lo to 2 times 2	
+
+  1m id2
+  1m iu4	
+  lo to 2 times ni
+
+  1m rd2
+  "l4=1"
+  1m ip5
+  lo to 2 times 2
+
+  1m iu0*8
+  lo to 2 times ni2 
+
+
+
+; #------------- phase tables -----------
+
+ph0  = 0
+ph1  = 1 3
+
+ph15 = 0
+ph16 = 0 0 2 2 
+ph17 = 0 0 2 2 
+
+ph10 = 0 2  	 		
+
+ph20 = 3 1 1 3
+ph21 = 1 3 3 1
+ph22 = 1 3 3 1
+
+ph23 = 3 1 1 3
+
+ph18 = 0
+ph19 = 0
+
+ph5 = 3 1 1 3
+ph6 = 1 3 3 1
+
+ph27 = 1
+
+ph28 = 0
+ph29 = 0
+
+ph30 = 0
+ph31 = 0 2 2 0
+ 
+

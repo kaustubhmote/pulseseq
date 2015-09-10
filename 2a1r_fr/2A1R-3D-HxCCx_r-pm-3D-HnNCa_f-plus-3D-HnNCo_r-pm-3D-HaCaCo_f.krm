@@ -1,0 +1,187 @@
+;# ##############################################################################
+;# ####### 2A1R-(2D-HxCx_r +/- 2D-Hn(N)Ca_f + 2D-Hn(N)Co_r +/- 2D-Ha(CaN)Co_f) ########
+;# ##############################################################################
+
+;# ------------- parameters --------------------------------------
+;# --------------- CHANNELS --------------------------------------
+;f1 : 13C
+;f2 : 1H
+;f3 : 15N
+;# ---------------------------------------------------------------
+;# -------------- pulses------------------------------------------
+;p2 : 90 on 1H @ pl2
+;p1 : 90 on 13C @ pl1
+;p3 : 90 on 15N @ pl3
+;p18 : cp from 1H to 15N, selective
+;p17 : cp from 1H to 13C, selective 
+;p25 : specific cp between 15N and 13C
+;p31 : rCW CW length  (set automatically)
+;p32 : rCW inversion pulse @ pl12
+;p5 : pmlg pulse length per phase increment
+;p9 : part of window (window=p9+1.6u)
+;# ---------------------------------------------------------------
+;# -------------power levels -------------------------------------
+;pl2 : 90 on 1H @ p2
+;pl1 : 90 on 13C @ p1
+;pl3 : 90 on 15N @ p3
+;pl12 : decoupling on 1H @ cpdprg2
+;pl13 : homonuclear decoupling power level on 1H
+;sp0 : 1H, CP from 1H to 13C and 15N
+;pl17 : 13C, CP from 1H to 13C
+;pl18 : 13C, CP from 1H to 15N
+;sp6 : 13C, specific cp 1
+;pl25 : 15N, specifi cp 1 and specific cp 2
+;sp7 : 13C, specific cp 2
+;#----------------------------------------------------------------
+;#-------------- shapes ------------------------------------------
+;cpdrg2 : decoupling on 1H (rCW-AiA)
+;spnam0 : ramp Cp on 1H
+;spnam1 : pmlg m5m 
+;spnam6 : adiabatic tangent on 13C for specific cp
+;spnam7 : adiabatic tangent on 13C for specific cp
+;# ---------------------------------------------------------------
+;# ------------ et al.--------------------------------------------
+;l0 : loopcounter for 1H evolution
+;cnst5 : =56 (Ca)
+;cnst6 : =178 (Co)
+;NBL : =2 (buffers)
+;#----------------------------------------------------------------
+
+;# -------------------definitions--------------------------------------------
+;# --------- decoupling parameters for rCW-AiA-------------------------------
+  "d31=1/cnst31"
+  "p31=0.98*d31-p32/2"
+;# --------- indirect incrementation counter---------------------------------
+  define loopcounter ni
+  "ni=td1/8"
+  define loopcounter ni2
+  "ni2=td2/2"
+
+;# --------- parameters for homonuclear decoupling---------------------------
+  "sp1=pl13"  ;# PMLG power level with sp1=m5m or m3m or a seq of your choice
+  "d3=p9"  ;# defines the widow in conjuction with d9, if any
+  "p10=10*p5"  ;# wPMLG pulse length 
+  define delay dX
+  "dX=d3+1.6u" ;# window
+;# --------- set the initial loop for 1H evolution to 0----------------------
+  "l0=0"
+;# --------- so that the specific cp + 90 on the 15N is balanced-------------
+  "p26=p25+p3"
+
+  "id2=inf2"
+
+;#---------------------------------------------------------------------------
+
+
+;# ----- pulse program starts -----------------------------------------------
+1 ze
+2 1m do:f2
+  d1 st0
+
+;# first 90 on 1H
+  (p2 pl2 ph1):f2
+
+;# evolve 1H - use homonuclear decoupling if the spining speed is slow
+4 (p10:sp1 ph10^):f2
+  dX
+  lo to 4 times l0
+
+;# simultaneous cp to 13C and 15N. both CPs should end at the same time
+  (p18:sp0 ph15):f2 (d17 p17 pl17 ph17):f1 (p18 pl18 ph18):f3
+
+; #---indirect evolution 1
+  0.1u pl12:f2
+  0.1u cpds2:f2
+  d0
+  0.1u do:f2
+
+
+; #---bidirectional specific cp from 15N to 13C and 13C to 15N
+; #---there is a 90-pulse on 15N after the cp
+
+  0.1u cw:f2
+  (p26:sp6 ph26):f1 (p25 pl25 ph27 p3 pl3 ph24):f3
+  0.1u do:f2
+
+; #---mixing CC
+  (p2 pl2 ph5):f1
+  (p21 pl21 ph0):f2
+  (p2 pl2 ph6):f1
+
+; #---first detection
+  0.1u pl12:f2
+  0.1u cpds2:f2
+  goscnp  ph31
+  1m do:f2
+
+; #---dephase anything left on 13C
+  10m
+  (p1 pl1 ph0):f1
+  10m  st
+
+; #---specific cp frm 15N to 13C
+  0.1u cw:f2
+  10u fq=cnst5(bf ppm):f1
+  (p3 pl3 ph25):f3
+  (p25:sp7 ph28):f1 (p25 pl25 ph29):f3
+  0.1u do:f2
+
+; #---second detection 
+  10u fq=cnst7(bf ppm):f1
+  1u cpds2:f2
+  go=2 ph31
+  1m do:f2
+
+; #---write both files 
+  1m wr #0 if #0 zd
+
+; #---quadrature loop (STATES-TPPI)
+  1m ip1
+  lo to 2 times 2
+
+; #---hadamard loop
+  1m ip27*2
+  lo to 2 times 2
+
+; #---increment 1 loop
+  1m iu0*8
+  lo to 2 times ni
+
+; #--- quadrature loop 2 (STATES-TPPI)
+  1m ip17
+  1m ip18
+  lo to 2 times 2
+
+; #---increment 2 loop
+  1m id2
+  lo to 2 times ni2
+
+
+
+
+;#----------------- end --------------------------------------------------------
+
+;#-------------------------phase tables ----------------------------------------
+ph0= 0
+ph1= 1 3 
+ph15= 0
+ph17= 0 0 2 2 
+ph18= 0 0 2 2 
+
+ph26= 0
+ph27= 0
+
+ph5=3 1 1 3 
+ph6=1 3 3 1
+
+ph24= 1 3 3 1
+ph25= 3 1 1 3 
+
+ph28= 0 
+ph29= 0
+
+ph10= 0 2
+
+ph31= 0 2 2 0 
+--------------------------------------------------------------------------------
+
