@@ -1,0 +1,275 @@
+; ############################################################
+; ###### 2A2E1R-[ 2D-DARR_f + numN x 2D-NCa_f ] ##############
+; ############################################################
+
+; #----- reference
+; Tata Gopinath and Gianluigi Veglia,
+;  Dual acquisition magic-angle spinning solid-state 
+;  NMR-spectroscopy: Simultaneous acquisition of multidimensional 
+;  spectra of biomacromolecules, 
+;  Angewandte Chemie (Int. Ed.) 51, 2731–2735 (2012)
+
+; #----- Important Setup Information
+
+; 1. This pulse sequence achieves two acquisitions by using 2 buffers
+;    So, set NBL=2 before starting the sequence otherwise the data from
+;    acq-2 will keep overwriting the one from acq-1. No error will be
+;    detected by topspin if you forget to set it.
+
+; 2. Topspin calculates dataset size for a 2D program by TD0*TD1
+;    In this pulse seq, dataset size  = 2*TD0*TD1
+;    This mismatch causes an alert box to pop up and
+;    the experiment does not start till this is 'OK'd
+;    To avoid this, set TD1=2*(the-TD1-you-would-normally-set)
+;    The pulse program will internally correct for that
+;    The "REAL" TD1 for each experiments is given by the loopcounters 
+;    as follows:  TD1 = 2*ni 
+
+; 3. Processing:
+;    Use the 'split' command and give the folder number (eg 10001)
+;    2D-DARR will be in dataset 10001
+;    2D-NCa will be in dataset 10002
+
+;    Alternatives:
+;    1. nmrPipe: using the COADD function 
+;       "| nmrPipe -fn COADD -axis Y -cList 1 0 \" and
+;       "| nmrPipe -fn COADD -axis Y -cList 0 1 \"        
+;    2. nmrglue/python: numpy array slicing functionality.
+;       "data_1 = data[0::2]" and
+;       "data_2 = data[1::2]"
+;    Example processing scripts for nmrPipe and nmrglue are available at 
+;    www.github.com/kaustubhmote/pulsequences
+
+
+; 4. Ensure that ni (=TD1/4) is a integer-multiple of l0:
+;    In this experiment, multiple 15N edited experiments can be obtained
+;    along with a single 13C-edited experiment. The number of 15N-edited
+;    experiments per 13C-edited experiment is given by l0. To ensure that
+;    all 15N-edited experiments are identical, TD1/2 must be a multiple of
+;    l0. Otherwise the last experiment, as well as some of the earlier experiments
+;    will not have the correct/appropriate number of increments.
+
+; 5. Issues, suggestions?
+;    kaustuberm [at] tifrh [dot] res [dot] in
+;    or fork the repository from www.github.com/kaustubhmote/pulsequences
+
+; #----channels
+; f1: 13C
+; f2: 1H
+; f3: 15N 
+; #-----------------------------------------------------
+
+; #---------- pulses        
+;p2: 1H 90 pulse @ pl2
+;p1: 13C 90 pulse @ pl1
+;p3: 15N 90 pulse @ pl3
+;p11: SIMCP from 1H to 13C and 15N time
+;p20: SPECIFIC CP 15N-->13C or 13C-->15N mixing time
+;mix1: mixing time for DARR, PDSD experiment, set by l1
+;mix2: mixing time for NCaCx experiment, set by l2
+;pcpd2: Decoupling pulse, ~180deg pulse for SPINAL/TPPM/swTPPM
+; #--------------------------------------------------
+
+; #---------- Power Levels 
+;pl2: 1H 90 deg pulse  @ p2 us
+;pl1: 13C 90 deg pulse @ p1 us
+;pl3: 15N 90 deg pulse @ p3 us
+;spf1: RAMP on 1H for SIMCP
+;pl5: =spw0 Cp power level on 1H
+;pl4: Sim Cp power level on 15N
+;pl11: Sim Cp power level on 13C
+;pl10: DARR mixing power level
+;pl12: Decoupling power on 1H during t1, t2 
+;pl13: Decoupling power on 1H  SPECIFIC CP
+;pl20: =spw1 SPECIFIC Cp power level on 13C
+;pl21: SPECIFIC CP power level on 15N
+; #--------------------------------------------------
+
+; #------------Constants, etc
+;cnst5: ca. 50 ppm (Shifted for NCa expt)
+;cnst6: ca. 104 ppm (Center for DARR expt)
+;cnst31: MAS spinning speed
+;cnst13: Ratio SW (13C)/Sw(15N) ~10 for Uniformly labeled samples
+;l0: Number of 15N edited experiments per 13C experiment 0<= l0 <=10
+;l1: mixing-time=L1*(1/cnst31) for DARR
+;l2: mixing-time=L2*(1/cnst31) for NCx for NCa=0
+;l4: current 13C increment number, set to 1
+
+
+; #----------- Calculated constants
+;ni: Total number of complex increments on 13C = td1/4
+
+
+; #----------- Indirect dimsnsion settings
+; #---increment dwell time set from inf1
+  "in0=inf1"
+
+; #------mixing time for DARR
+  define pulse mix1
+  "mix1=(1s/cnst31)*l1"
+
+; #------mixing time for NCCx
+; define pulse mix2
+; "mix2=(1s/cnst31)*l2"
+
+; #------indirect incrementation loopcounter
+  define loopcounter ni
+  "ni=td1/4"
+
+; #-----counter for current expt number
+  define loopcounter nexptno
+  "nexptno=0"
+
+; #-----set l4 to zero initially
+  "l4=0"
+
+; #------ PULSE SEQUENCE STARTS --------------------
+
+1 ze
+2 d1 do:f2
+
+; #---90 deg on 1H
+  10u pl2:f2 st0
+  (p2 pl2 ph1):f2
+
+; #---sim cp to 13C and 15N
+  1u pl11:f1 pl5:f2 pl4:f3
+  (p11 ph2):f1 (p11:sp0 ph3):f2 (p11 ph4):f3
+
+; #---store 15N
+  0.1u
+  (p3 pl3 ph5):f3  
+
+; #---indirect evolution on 13C
+  0.1u cpds2:f2
+  d0
+	
+  1u pl1:f1 
+  (p1 pl1 ph14):f1  
+  0.1u do:f2
+
+; #---DARR mixing on 13C
+  1u pl10:f2
+  (mix1 pl10 ph6):f2
+  (p1 pl1 ph7):f1
+
+; #---detect 13C	
+  goscnp ph31 cpds2:f2
+  0.1u do:f2
+
+; #---dephase remaining 13C
+  6m st 
+  (p1 pl1 ph8):f1
+  6m
+
+; #---bring back 15N
+  0.1u cpds2:f2
+  (p3 pl3 ph9):f3 
+
+; #--evolve 15N
+
+; #--- 1. determine 15N exptnumber
+  "nexptno=(l4)/(ni/l0)" ; since nexptno is a loopcounter, 
+                         ; this does integer division
+
+; #--- 2. for the first increment
+  if "d0 < in0" goto label11
+
+; #--- 3. calculate 15N evolution time
+  define delay dN
+  "dN=cnst13*(d0-nexptno*in0*ni/l0)"
+  dN
+  goto label11
+
+
+label11,
+  0.1u do:f2
+
+; #---specific cp from 15N to 13C	 
+  1u pl21:f3 pl20:f1 pl13:f2
+  0.1u cw:f2
+  1u fq=cnst5(bf ppm):f1
+  (p20:sp1 ph10):f1 (p20 pl21 ph11):f3
+  1u fq=cnst6(bf ppm):f1
+  0.1u do:f2
+
+; #---DARR mixing if needed
+; 1u pl1:f1 pl10:f2   
+; (p1 ph12):f1  
+; 1u do:f2
+; (mix2 ph6):f2
+; (p1 ph13):f1	
+
+; #---detect 13C	
+  go=2 ph31 cpds2:f2
+  3m do:f2
+
+; #---write data
+  10m wr #0 if #0 zd
+
+; #---quadrature loop
+  1m ip14
+  1m ip9
+  lo to 2 times 2
+
+; #---increment loop
+  1m id0
+  1m iu4
+  lo to 2 times ni
+
+
+exit
+
+# --- 2 step phase cycle	
+ph1   = 1 3  ; 90 pulse on 1H	
+ph2   = 0    ; simcp 13C
+ph3   = 0    ; simcp 1H
+ph4   = 0    ; simcp 15N
+ph5   = 1    ; 15N 90 after simcp
+ph14  = 1    ; 13C 90 before mix (quad)
+ph6   = 0    ; darr 1H irradiation
+ph7   = 3    ; 13C 90 after mix
+ph8   = 1    ; 13C pi pulse after 1aq
+ph9   = 3    ; 15N 90 to bring back Z mag (quad)
+ph10  = 0    ; SPECIFIC on 13C
+ph11  = 0    ; SPECIFIC on 15N
+ph12  = 1    ; 13C 90 before mix2
+ph13  = 3    ; 13C 90 after mix2
+ph31  = 1 3  ; reciever
+
+/*
+; #--- 8 step phase cycle
+ph1   = 1 3              ; 90 pulse on 1H	
+ph2   = 1                ; simcp 13C
+ph3   = 0                ; simcp 1H
+ph4   = 0 0 2 2          ; simcp 15N
+ph5   = 1 3 3 1          ; 15N 90 after simcp
+ph14  = 0 0 0 0 2 2 2 2  ; 13C 90 before mix (quad)
+ph6   = 0                ; darr 1H irradiation
+ph7   = 0 0 2 2 0 0 2 2  ; 13C 90 after mix
+ph8   = 1                ; 13C dephasing pulse after 1aq
+ph9   = 3 1 1 3          ; 15N 90 to bring back Z mag (quad)
+ph10  = 0 0 0 0 2 2 2 2  ; SPECIFIC CP on 13C
+ph11  = 0                ; SPECIFIC CP on 15N
+ph12  = 3 3 3 3 1 1 1 1  ; 13C 90 before mix2
+ph13  = 1 1 1 1 3 3 3 3  ; 13C 90 after mix2
+ph31  = 0 2 2 0 2 0 0 2  ; reciever
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
