@@ -32,8 +32,8 @@
 
 ;    Alternatives:
 ;    1. nmrPipe: using the COADD function 
-;       "| nmrPipe -fn COADD -axis Y -cList 1 0 \" and
-;       "| nmrPipe -fn COADD -axis Y -cList 0 1 \"        
+;       "| nmrPipe -fn COADD -axis Y -cList 1 0 \ " and
+;       "| nmrPipe -fn COADD -axis Y -cList 0 1 \ "        
 ;    2. nmrglue/python: numpy array slicing functionality.
 ;       "data_1 = data[0::2]" and
 ;       "data_2 = data[1::2]"
@@ -45,7 +45,7 @@
 ;    In this experiment, multiple 15N edited experiments can be obtained
 ;    along with a single 13C-edited experiment. The number of 15N-edited
 ;    experiments per 13C-edited experiment is given by l0. To ensure that
-;    all 15N-edited experiments are identical, TD1/2 must be a multiple of
+;    all 15N-edited experiments are identical, TD1/4 must be a multiple of
 ;    l0. Otherwise the last experiment, as well as some of the earlier experiments
 ;    will not have the correct/appropriate number of increments.
 
@@ -63,8 +63,8 @@
 ;p2: 1H 90 pulse @ pl2
 ;p1: 13C 90 pulse @ pl1
 ;p3: 15N 90 pulse @ pl3
-;p11: SIMCP from 1H to 13C and 15N time
-;p20: SPECIFIC CP 15N-->13C or 13C-->15N mixing time
+;p11: SIMCP from 1H-->13C and 1H-->15N, contact time 
+;p20: SPECIFIC CP 15N-->13C or 13C-->15N, contact time
 ;mix1: mixing time for DARR, PDSD experiment, set by l1
 ;mix2: mixing time for NCaCx experiment, set by l2
 ;pcpd2: Decoupling pulse, ~180deg pulse for SPINAL/TPPM/swTPPM
@@ -90,10 +90,10 @@
 ;cnst6: ca. 104 ppm (Center for DARR expt)
 ;cnst31: MAS spinning speed
 ;cnst13: Ratio SW (13C)/Sw(15N) ~10 for Uniformly labeled samples
-;l0: Number of 15N edited experiments per 13C experiment 0<= l0 <=10
-;l1: mixing-time=L1*(1/cnst31) for DARR
-;l2: mixing-time=L2*(1/cnst31) for NCx for NCa=0
-;l4: current 13C increment number, set to 1
+;l0: Number of 15N edited experiments per 13C experiment
+;l1: mixing-time=l1*(1/cnst31) for DARR
+;l2: mixing-time=l2*(1/cnst31) for NCx for NCa=0
+;l4: current 13C increment number, set=0 in the beginning
 
 
 ; #----------- Calculated constants
@@ -122,6 +122,11 @@
 
 ; #-----set l4 to zero initially
   "l4=0"
+
+
+
+
+
 
 ; #------ PULSE SEQUENCE STARTS --------------------
 
@@ -220,7 +225,7 @@ label11,
 
 exit
 
-# --- 2 step phase cycle	
+; # --- 2 step phase cycle	
 ph1   = 1 3  ; 90 pulse on 1H	
 ph2   = 0    ; simcp 13C
 ph3   = 0    ; simcp 1H
@@ -255,21 +260,3 @@ ph12  = 3 3 3 3 1 1 1 1  ; 13C 90 before mix2
 ph13  = 1 1 1 1 3 3 3 3  ; 13C 90 after mix2
 ph31  = 0 2 2 0 2 0 0 2  ; reciever
 */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- 
-
-
