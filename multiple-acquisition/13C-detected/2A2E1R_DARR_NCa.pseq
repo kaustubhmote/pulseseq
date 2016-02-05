@@ -9,6 +9,7 @@
 ;  spectra of biomacromolecules, 
 ;  Angewandte Chemie (Int. Ed.) 51, 2731–2735 (2012)
 
+
 ; #----- Important Setup Information
 
 ; 1. This pulse sequence achieves two acquisitions by using 2 buffers
@@ -224,7 +225,7 @@ label11,
 
 
 exit
-
+/*
 ; # --- 2 step phase cycle	
 ph1   = 1 3  ; 90 pulse on 1H	
 ph2   = 0    ; simcp 13C
@@ -241,8 +242,27 @@ ph11  = 0    ; SPECIFIC on 15N
 ph12  = 1    ; 13C 90 before mix2
 ph13  = 3    ; 13C 90 after mix2
 ph31  = 1 3  ; reciever
-
+*/
 /*
+; #--- 4 step phase cycle
+
+ph1   = 1 3        ; 90 pulse on 1H   
+ph2   = 0 0 2 2    ; simcp 13C
+ph3   = 0          ; simcp 1H
+ph4   = 0          ; simcp 15N
+ph5   = 1          ; 15N 90 after simcp
+ph14  = 1          ; 13C 90 before mix (quad)
+ph6   = 0          ; darr 1H irradiation
+ph7   = 1 1 3 3    ; 13C 90 after mix
+ph8   = 1          ; 13C pi pulse after 1aq
+ph9   = 1 1 3 3    ; 15N 90 to bring back Z mag (quad)
+ph10  = 0 0 2 2    ; SPECIFIC on 13C
+ph11  = 0          ; SPECIFIC on 15N
+ph12  = 1          ; 13C 90 before mix2
+ph13  = 1 1 3 3    ; 13C 90 after mix2
+ph31  = 0 2 2 0    ; reciever
+*/
+
 ; #--- 8 step phase cycle
 ph1   = 1 3              ; 90 pulse on 1H	
 ph2   = 1                ; simcp 13C
@@ -259,4 +279,4 @@ ph11  = 0                ; SPECIFIC CP on 15N
 ph12  = 3 3 3 3 1 1 1 1  ; 13C 90 before mix2
 ph13  = 1 1 1 1 3 3 3 3  ; 13C 90 after mix2
 ph31  = 0 2 2 0 2 0 0 2  ; reciever
-*/
+
