@@ -1,0 +1,310 @@
+;  ###############################################################
+;  ######   2A3E1R-[ 3D-(Cx)CaNH_f + 3D-N(CaCo)NHn_f)    #########
+;  ###############################################################
+
+; # ----- Important Setup instructions
+
+; 1. This pulse sequence achieves two acquisitions by using 2 buffers
+;    So, set NBL=2 before starting the sequence otherwise the data from
+;    acq-2 will keep overwriting the one from acq-1. No error will be 
+;    detected by topspin if you forget to set it. 
+
+; 2. Topspin calculates dataset size for a 3D program by TD1*TD2
+;    In this pulse seq, dataset size  = 2*TD1*TD2
+;    This mismatch causes an alert box to pop up and
+;    the experiment does not start till this is 'OK'd
+;    To avoid this, set TD1=2*(the-TD1-you-would-normally-set)
+;    The pulse program will internally correct for that
+;    The "REAL" TD1 and TD2 are given by the loopcounters as follows:
+;    TD1 = 2*ni and TD2 = 2*ni2 
+
+; 3. Processing:
+;    Use the 'split' command and give the folder number (eg 10001)
+;    3D-(Cx)CaNH will be in dataset 10001
+;    3D-N(CaCo)NHn will be in dataset 10002
+
+; 4. Set SW_h ~ cnst6 before the start of the experiment. This is relatd to
+;                     how many TD0 points are acquired and stored
+;    if SW_h > cnst6, there will be an error "Not enough points acquired"
+;    if SW_h < cnst6, no error will be reported and program will execute, 
+;                     but data stored will be < data acquired
+
+
+; #--------------- windowed pmlg settings
+;l11 : =16 Oversampling parameter
+;p5 : 1.0-2.2us (Needs to be optimized)
+;p9 : =d3 2.8-3.3us (optimize for each probe)
+;p8 : =d8 = 1.6u (can be optimized if needed)
+;pl13 : pmlg decoupling power for pulse SPNAM1
+
+;# ------------- pulses
+;p1 : 1H initial 90 deg pulse @ pl1
+;p15 : Contact time for initial cp from 1H to 13C and 15N
+;p2 : 90 deg pulse on 13C @ pl2
+;p3 : 90 deg pulse on 15N @ pl3
+;p24 : DREAM Cx(Ca) transfers
+;p25 : DREAM CaCo transfers
+;p23 : SPECIFIC CP contact time (bidirectional CP)
+;p18 : selective (short) CP from 15N to 1H
+;p31 : pulse for rCW-ApA decoupling, =0.98*rotor-cycle, automatically set
+;p32 : 180 pulse on 1H @ pl12
+
+; #------------ powers
+;pl1 : 1H, 90 pulse @ length p1
+;pl2 : 13C, 90 pulse @ length p2
+;pl3 : 15N, 90 pulse @ length p3
+;pl7 : 1H, water suppression, usually 10-20 kHz
+;pl12 : 1H, decoupling, 100 kHz
+;pl11 : 1H, cw decoupling during dream and specific-cp
+;sp0 : 1H, initial CP to 13C and 15N
+;pl16 : 13C, initial CP from 1H
+;pl17 : 15N, initial CP from 1H, and cp from 15N to 1H
+;sp6 : 13C, specific-cp @ p23 Ca-N
+;sp7 : 13C, specific-cp @ p23 Co-N
+;pl26 : 15N. specifoc-cp @ p23 Ca-N
+;pl27 : 15N, specific-cp @ p23 Co-N
+;sp3 : 1H, selective (short) CP from 15N to 1H 
+;sp4 : dream CxCa
+;sp5 : dream CoCa
+
+
+; #------------ delays and delay increments
+;d1 : recycle delay 1-3 seconds
+;d2 : first indirect evolution (Cx)"Ca"NH and "N"(CaCo)NH
+;d3 : second indirect evolution (Cx)Ca"N"H and N(CaCo)"N"H
+;d10 : water suppression time
+;d9 : =p9, part of window during pmlg
+;d8 : =p8, time against turing on the reciever
+;inf1 : =in2, dwell time for d2
+;inf2 : =in3, dwell time for d3
+
+; #---------- shaped pulses 
+;SPNAM0 : 1H, ramp for CP
+;SPNAM1 : 1H, m5m, m3m pmlg 
+;SPNAM3 : 1H, ramp for CP, same as SPNAM0
+;SPNAM4 : 13C, DREAM CxCa
+;SPNAM5 : 13C, DREAM CoCa
+;SPNAM6 : 13C, specific-cp Ca-N, phase modulated so that 
+;              effective offset if ~56ppm
+;              Else, use a cnst to switch frq using cnstX:f2  
+;SPNAM7 : 13C, specific-cp Co-N, phase-modulated so that
+;              effective offset is ~178ppm
+;              Else, use a cnst to switch freq using cnstX:f2
+
+; #---------- decoupling pulses
+;CPDPRG2 : 1H, high power 1H decoupling, rCW-AiA
+;CPDPRG3 : water suppression
+
+; #---------- constants
+;cnst31 : MAS frequency
+
+; #----------- bookkeeping
+;ni : increments for 1st dimension
+;ni2 : increments for 2nd dimension
+;dX : part of window for windowed acquisition
+;cycle : pmlg cycle time, 
+;cnst6 : windowed acquisition unscaled spectral width
+;p22 : pulse lenght for some adjustments, automatically set
+;count : for ensuring that data is acquired for AQ time
+
+
+; #------------ definitions
+
+  #include <Avancesolids.incl>
+  #include <Delayssolids.incl>
+
+; #------------ indirect evolution 
+  "in2=inf1"
+  "in3=inf2"
+  define loopcounter ni
+  "ni=td1/4" 
+  define loopcounter ni2
+  "ni2=td2/2"
+
+; #------------- decoupling 
+  "d31=1/cnst31" 
+  "p31=(0.98*d31)-(0.5*p32)"
+
+; # ------------- pmlg acquisition
+  "sp1=pl13"        
+  "d9=0.1u*(l11)"   
+  "d3=p9"
+  "d8=p8"
+  "p10=10*p5"  
+
+  define delay dX
+  "dX=d3-d9-0.1u"
+
+  define delay cycle
+  "cycle=2*(d3 + p10 + d8)"
+
+  define loopcounter count
+  "count=aq/cycle"  
+  "cnst6=2/cycle"
+
+  "blktr2 = 0.7u"
+  "anavpt=l11"
+
+; #---pulse length adjustemnt for specific cp + 90
+  "p22=p23-p2"
+
+
+; ########### PULSE SEQUENCE STARTS #################
+
+; #---clear and recycle delay
+1 ze
+2 d1
+
+; #---intial power and reset buffer to position 1
+  10u pl1:f1 st0 
+  10u reset1:f1 
+
+; #---initialize reciever for 1st acquisition
+  STARTADC 
+  RESETPHASE
+  1u rpp10  
+
+; #---first 1H 90 at pl1
+  (p1 pl1 ph1):f1
+
+; #---Cross-polarization
+  (p15:sp0 ph0):f1 (p15 pl16 ph0):f2 (p15 pl17 ph0):f3
+
+; #---Water suppression
+  0.1u pl7:f1
+  0.1u cpds3:f1 
+  (p2 pl2 ph3):f2 (p3 pl3 ph4):f3   
+  d10
+  0.1u do:f1
+
+; # ---indirect evolution on 13C and 15N (co-evolved)
+; # ---"N"CH and "C"NH
+  0.1u pl12:f1
+  0.1u cpds2:f1
+  (p2 pl2 ph21):f2 (p3 pl3 ph22):f3         
+  d2
+  0.1u do:f1
+
+; #---start cw dec on 1H for use with dream and specific cp seq
+  0.1u pl11:f1
+  0.1u cw:f1
+
+; #--- 13C mixing (DREAM), store 15N
+  (p24:sp4 ph0):f2 (p3 pl3 ph4):f3
+  (p3 pl3 ph3):f3
+
+; #---bidirectional specific cp and store 13C
+  (p22:sp6 ph18 p2 pl2 ph5):f2 (p23 pl26 ph17):f3                                                          
+  0.1u do:f1
+
+; #---indirect evolution on 15N
+; #---(Cx)C"N"H
+  0.1u pl12:f1
+  0.1u cpds2:f1
+  d3
+  0.1u do:f1
+
+; #---cp from 15N to 1H
+  (p18:sp3 ph0):f1 (p18 pl17 ph23):f2 
+
+; #---detection (Cx)CN"H" 
+4 dX
+  d8 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  dX
+  d8 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  lo to 4 times count 
+  100u eoscnp
+
+; #---move file pointer to buffer 2
+  10u st
+
+; #---initilize for second acquistion
+  STARTADC   
+  RESETPHASE   
+  1u rpp10 
+
+; #---bring back stored 13C magnetization
+  0.1u pl11:f1
+  0.1u cw:f1
+  (p2 pl2 ph6):f2 
+
+; #---DREAM Ca-Co mixing
+  (p25:sp5 ph0):f2
+
+; #---specific cp from 13C to 15N   
+  (p23:sp7 ph0):f2 (p23 pl27 ph0):f3
+  0.1u do:f1
+
+; #---evolve 15N N(CaCo)"N"H
+  0.1u pl12:f1
+  0.1u cpds2:f1
+  d3
+  0.1u do:f1
+
+;# ---cp from 15N to 1H
+  (p18:sp3 ph0):f1 (p18 pl17 ph24):f3  
+
+;# ---detection N(CaCo)N"H"
+5 dX
+  d8 RG_ON
+  sample      
+  (p10:sp1  ph10^):f1  
+  dX
+  d8 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  lo to 5 times count  
+  100u rcyc=2
+
+; #---write data and inc file pointer
+  1m wr #0 if #0 zd
+
+; #---quadrature 1 (states-tppi)
+  1m ip21
+  1m ip22
+  lo to 2 times 2
+
+; #---increment 1
+  id2
+  lo to 2 times ni
+
+; #---quadrature 2 (states-tppi) and reset inc 1
+  rd2
+  1m ip23
+  1m ip24
+  lo to 2 times 2
+
+; #---increment 2
+  id3
+  lo to 2 times ni2
+
+
+
+; #----phase cycle 8 step 
+
+  ph0  = 0
+  ph1  = 1 3
+
+  ph10 = 0 2               
+
+  ph3 = 3 1
+  ph4 = 1 3
+  ph5 = 3 1 1 3 1 3 3 1
+  ph6 = 1 3 3 1 3 1 1 3
+
+  ph21 = 1 3
+  ph22 = 3 1
+  ph23 = 0
+  ph24 = 0
+
+  ph18 = 0 0 0 0 2 2 2 2 
+  ph17 = 0 0 2 2 
+
+  ph30 = 0
+  ph31 = 0 2 2 0 2 0 0 2
+; #---------------------
+
