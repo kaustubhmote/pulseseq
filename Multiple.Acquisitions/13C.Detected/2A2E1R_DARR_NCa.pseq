@@ -12,6 +12,8 @@
 
 ; #----- Important Setup Information
 
+; 0. Pulse sequence verified on Bruker Topspin 2.1, Avance III
+
 ; 1. This pulse sequence achieves two acquisitions by using 2 buffers
 ;    So, set NBL=2 before starting the sequence otherwise the data from
 ;    acq-2 will keep overwriting the one from acq-1. No error will be
@@ -41,8 +43,9 @@
 ;    Example processing scripts for nmrPipe and nmrglue are available at 
 ;    www.github.com/kaustubhmote/pulsequences
 
+; 5. The indirect acquisition mode is hard-coded to States-TPPI
 
-; 4. Ensure that ni (=TD1/4) is a integer-multiple of l0:
+; 6. Ensure that ni (=TD1/4) is a integer-multiple of l0:
 ;    In this experiment, multiple 15N edited experiments can be obtained
 ;    along with a single 13C-edited experiment. The number of 15N-edited
 ;    experiments per 13C-edited experiment is given by l0. To ensure that
@@ -50,7 +53,7 @@
 ;    l0. Otherwise the last experiment, as well as some of the earlier experiments
 ;    will not have the correct/appropriate number of increments.
 
-; 5. Issues, suggestions?
+; 7. Issues, suggestions?
 ;    kaustuberm [at] tifrh [dot] res [dot] in
 ;    or fork the repository from www.github.com/kaustubhmote/pulsequences
 
@@ -126,9 +129,6 @@
 
 
 
-
-
-
 ; #------ PULSE SEQUENCE STARTS --------------------
 
 1 ze
@@ -199,12 +199,15 @@ label11,
   1u fq=cnst6(bf ppm):f1
   0.1u do:f2
 
+/*
 ; #---DARR mixing if needed
-; 1u pl1:f1 pl10:f2   
-; (p1 ph12):f1  
-; 1u do:f2
-; (mix2 ph6):f2
-; (p1 ph13):f1	
+  1u pl1:f1 pl10:f2   
+  (p1 ph12):f1  
+  1u do:f2
+  (mix2 ph6):f2
+  (p1 ph13):f1	
+*/
+
 
 ; #---detect 13C	
   go=2 ph31 cpds2:f2
