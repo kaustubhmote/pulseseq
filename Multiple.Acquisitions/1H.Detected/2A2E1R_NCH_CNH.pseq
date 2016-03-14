@@ -1,5 +1,5 @@
 ; ###########################################################
-; ####### 2A3E1R-[ 3D-NCH_f + 3D-CNH_f ] ####################
+; ####### 2A2E1R-[ 3D-NCH_f + 3D-CNH_f ] ####################
 ; ###########################################################
 
 ; #--- Reference
@@ -175,18 +175,15 @@ define loopcounter count
   0.1u do:f2
   0.1u cpds2:f1
 
-; store 15N
-  (p3 pl3 ph22):f3										
-
-; indirect evolution on 13C 
-; N"C"H
+; indirect evolution on 13C and 15N
+; N"C"H and C"N"H
 
   d3  
 	
   0.1u do:f1
 
-; cp from 13C to 1H																				
-  (p17:sp3 ph18):f1 (p17 pl24 ph19):f2	
+; cp from 13C to 1H and store 15N																				
+  (p17:sp3 ph18):f1 (p17 pl24 ph19):f2 (p3 pl3 ph22):f3	
 
 ; detection NC"H"
   
@@ -213,18 +210,8 @@ define loopcounter count
   (p1 pl1 ph0):f1		
   6m 
 
-  0.1u pl12:f1					
-  0.1u cpds2:f1
-
 ; bring back stored 15N magnetization 
   (p3 pl3 ph23):f3					; 15N 90
-
-; indirect evolution on 15N 
-; C"N"H	
-
-  d3	
-
-  0.1u do:f1
 
 ; cp from 15N to 1H	
   (p18:sp5 ph28):f1 (p18 pl25 ph29):f3
@@ -253,7 +240,7 @@ define loopcounter count
  
   rd2
   10u ip19
-  10u ip23
+  10u ip22
   lo to 2 times 2
 
   id3
