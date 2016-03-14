@@ -20,14 +20,14 @@
 ;    statement in different Topspin versions. Change if you must according to
 ;    your preference and Topspin version
 
-; 2. Issues, suggestions?
+; 3. Issues, suggestions?
 ;    kaustuberm [at] tifrh [dot] res [dot] in
 ;    or fork the repository from www.github.com/kaustubhmote/pulseseq
 ; #--------------------------------------------------------------------
 
 ; #---- channels
-; f1: 1H
-; f2: 13C or 15N or any other heteronucleus
+;f1: 1H
+;f2: 13C or 15N or any other heteronucleus
 
 
 ; #---- pulses                                              
@@ -54,7 +54,7 @@
 ;d1: recycle delay
 ;d0: indirect increment delay
 ;d9: sampling during window, defined by l11, =0.1u*l11
-;d8: RG_On delay, =0.1u - 1.6u
+;d8: RG_ON delay, =0.1u - 1.6u
 ;d10: water suppression time
 ;p9: total window
 ; -------------------------------------------------------
@@ -66,7 +66,7 @@
 
 ; #---- constants, etc
 ;cnst6: 1H unscaled spectral width
-;cnst31: MAS frequency in HZ 
+;cnst31: MAS frequency in Hz 
 ; execute "s swh" and set sw to cnst6
 ; #--------------------------------------------------------------------------------
 
@@ -103,7 +103,7 @@
   "cycle=2*(window + p10)"
 
 ; #--- 1H sw
-  "cnst6 = 2/cycle
+  "cnst6 = 2/cycle"
 ; manually set sw to cnst6 to acquire the correct number of td0 points
 
 ; #--- number of complex points/2 for 1H deetction
@@ -122,17 +122,18 @@
   "ni = td1/2"
 
 ; rCW-ApA heteronuclea decoupling
+; the shape file is as follows
+; p31 p32 p31 p31' p32 p31'
+; p32 is the 180 deg pulse on 1H at pl12
   "d31=1/cnst31"
   "p31=0.98*d31 - p32*0.5"
 
 
 ; #-------- PULSE SEQUENCE STARTS
 
- 
 1 ze	
 2 d1 do:f1
 
-  1u pl1:f1				
   10u reset1:f1
   STARTADC
   RESETPHASE
@@ -181,30 +182,12 @@
 
 ; #--- indirect increment loop
   id0
-  lo to 2 time ni	
+  lo to 2 times ni	
 
 ; #--- phase tables
 ; choose whichever suits your needs
 
 /*
-; #--- 2 step
-  ph0 = 0
-
-  ph1 = 1 3
-  ph15 = 0
-  ph16 = 0
-
-  ph20 = 3 1
-  ph21 = 1
-
-  ph18 = 0               
-  ph19 = 0 
-
-  ph10 = 0 2
-
-  ph30 = 0
-  ph31 = 0 2 
-
 ; #--- 4 step
 
   ph0 = 0
@@ -214,7 +197,7 @@
   ph16 = 0
 
   ph20 = 3 1
-  ph21 = 1 
+  ph21 = 1  
 
   ph18 = 0 0 2 2 
   ph19 = 0 
@@ -222,7 +205,7 @@
   ph10 = 0 2
 
   ph30 = 0
-  ph31 = 0 2 2 0 
+  ph31 = 0 0 2 2 
 
 */
 
@@ -231,10 +214,10 @@
 
   ph1 = 1 3
   ph15 = 0 
-  ph16 = 0 0 2 2 
+  ph16 = 0 0 2 2        
 
-  ph20 = 3 1 1 3 
-  ph21 = 1 3
+  ph20 = 3 1 1 3
+  ph21 = 1 3     
 
   ph18 = 0 0 0 0 2 2 2 2 
   ph19 = 0 
@@ -242,14 +225,4 @@
   ph10 = 0 2
 
   ph30 = 0
-  ph31 = 0 2 2 0 2 0 0 2
-
- 
-
-
-
-
-
-
-
-
+  ph31 = 0 2 0 2 2 0 2 0
