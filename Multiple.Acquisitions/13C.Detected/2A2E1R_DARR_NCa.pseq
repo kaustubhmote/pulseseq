@@ -127,6 +127,9 @@
 ; #-----set l4 to zero initially
   "l4=0"
 
+; #-----include
+#include <Avancesolids.incl>
+
 
 
 ; #------ PULSE SEQUENCE STARTS --------------------
