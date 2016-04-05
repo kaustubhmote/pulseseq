@@ -261,8 +261,11 @@ define loopcounter count
 
 
 
-6 exit									; finished
+6 exit	
 
+
+; #---phase tables
+; #---min=8 steps
 
 
 ph0  = 0
@@ -288,8 +291,6 @@ ph19 = 0
 
 ph27 = 0 0 0 0 2 2 2 2   
 ph26 = 0 0 2 2  
-
-
 
 ph28 = 0 
 ph29 = 0

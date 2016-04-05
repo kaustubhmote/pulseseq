@@ -226,7 +226,8 @@
 
 6 exit									
 
-
+; #---phase tabels
+; #---min=8 steps
 
 ph0  = 0
 ph1  = 1 3
