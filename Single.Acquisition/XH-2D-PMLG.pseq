@@ -1,0 +1,206 @@
+; ###########################################################################
+; ### 2D Heternonucler Correlation Experiment with windowed 1H detection  ###
+; ###########################################################################
+
+; #----reference
+; Kaustubh R. Mote and P. K. Madhu
+; Proton-detected solid-state NMR spectroscopy of fully protonated proteins 
+; at slow to moderate magic-angle spinning frequencies
+; J. Magn. Reson. (2015) 261, 149
+; doi: 10.1016/j.jmr.2015.10.016
+
+
+; #---- Important Setup Instructions
+
+; 0. Pulse sequence verified on Bruker Topspin 2.1 and 3.2 + Avance III Console
+
+; 1. Pulse sequence achieves windowed 1H detection.
+
+; 2. Indirect acquisition hard-coded to States-TPPI to avoid problems with mc 
+;    statement in different Topspin versions. Change if you must according to
+;    your preference and Topspin version
+
+; 3. Issues, suggestions?
+;    kaustuberm [at] tifrh [dot] res [dot] in
+;    or fork the repository from www.github.com/kaustubhmote/pulseseq
+; #--------------------------------------------------------------------
+
+; #---- channels
+;f1: 1H
+;f2: 13C or 15N or any other heteronucleus
+
+
+; #---- pulses                                              
+;p1: 1H initial 90 deg pulse @ pl1
+;p15: Contact time for initial cross-polarization from 1H to X
+;p2: 90 deg pulse on 13C @ pl2
+;p17: selective (short) CP from X to 1H
+;p32: 1H, rCW-ApA 180 deg pulse @ pl12
+; --------------------------------------------------------------
+
+; #---- power levels 
+;pl1: 1H, 90 pulse @ length p1
+;pl2: X, 90 pulse @ length p2
+;pl7: 1H, H2O saturation power, usually 10-20 kHz
+;pl12: 1H, decoupling power during indirect evolution
+;sp0: 1H, initial CP to 13C and 15N, @ p15 (ramp)
+;pl16: X, initial CP tfrom 1H, @ p15
+;sp3: 1H, selective (short) CP from 13C to 1H @ p17 (ramp)
+;pl17: X, selective (short) CP from 13C to 1H @ p17 
+;pl13: SP1, wPMLG power level for X edited experiment
+; ----------------------------------------------------------------
+
+; #---- delays
+;d1: recycle delay
+;d0: indirect increment delay
+;d9: sampling during window, defined by l11, =0.1u*l11
+;d8: RG_ON delay, =0.1u - 1.6u
+;d10: water suppression time
+;p9: total window
+; -------------------------------------------------------
+
+; #---- shapes
+;sp0: linear ramp
+;sp1: m5m or m3m
+; #---------------
+
+; #---- constants, etc
+;cnst6: 1H unscaled spectral width
+;cnst31: MAS frequency in Hz 
+; execute "s swh" and set sw to cnst6
+; #--------------------------------------------------------------------------------
+
+; #---- definitions                                    
+
+; #---- incl files
+#include <Avancesolids.incl>	 
+#include <Delayssolids.incl>
+
+; #---- pmlg book keeping
+
+; #--- pmlg decoupling power = pl13
+  "sp1=pl13"
+
+; #--- d9 defines anavpt, keep l11 = 16
+  "d9=0.1u*(l11)"	
+
+; #--- total window incl sampling time = p9
+  define delay window
+  "window = p9"
+
+; #--- p10 = 10*p5 for m5m, 6*p5 for m3m
+  "p10 = 10*p5"
+
+; #--- part of window excluding sampling
+  define delay del
+  "del = window - p10 - d8 - d9 - 0.1u"
+
+; #---- RG_ON delay
+; keep d8 = 0.1u - 1.6u 
+
+; #--- pmlg clcle time
+  define delay cycle
+  "cycle=2*(window + p10)"
+
+; #--- 1H sw
+  "cnst6 = 2/cycle"
+; manually set sw to cnst6 to acquire the correct number of td0 points
+
+; #--- number of complex points/2 for 1H deetction
+  define loopcounter count
+  "count=aq/cycle"
+
+; # blacnk transmiiter 0.7u before opening to avoid sampling pulse
+  "blktr2 = 0.7u"		
+	
+; #--- for analog mode of acquisition; l11=16
+  "anavpt=l11"	
+
+; #--- indirect increment
+  "in0=inf1"
+  define loopcounter ni
+  "ni = td1/2"
+
+; rCW-ApA heteronuclea decoupling
+; the shape file is as follows
+; p31 p32 p31 p31' p32 p31'
+; p32 is the 180 deg pulse on 1H at pl12
+  "d31=1/cnst31"
+  "p31=0.98*d31 - p32*0.5"
+
+
+; #-------- PULSE SEQUENCE STARTS
+
+1 ze	
+2 d1 do:f1
+
+  10u reset1:f1
+  STARTADC
+  RESETPHASE
+  1u rpp10
+
+; #--- first 90 at pl1
+  (p1 pl1 ph1):f1					
+
+; #--- Cross-polarization
+  (p15:sp0 ph15):f1 (p15 pl16 ph16):f2
+ 
+; #--- indirect increment
+  0.1u pl12:f1 
+  0.1u cpds2:f1
+  d0
+  (p2 pl2 ph20):f2
+  0.1u do:f1
+
+; #--- Water Suppression
+  0.1u pl7:f1	
+  0.1u cpds3:f1	
+  d10	
+  (p2 pl2 ph21):f2
+  0.1u do:f1
+
+; #--- Reverse Cross-polarization
+  (p17:sp3 ph18):f1 (p17 pl17 ph19):f2	
+
+; #--- windowed detection
+4 del				
+  d8 RG_ON		
+  sample	
+  (p10:sp1  ph10^):f1
+  del
+  d8 RG_ON
+  sample
+  (p10:sp1  ph10^):f1
+  lo to 4 times count
+
+  1u rcyc=2 
+  1m wr #0 if #0 zd
+
+; #--- quadrature loop
+  10u ip21
+  lo to 2 times 2
+
+; #--- indirect increment loop
+  id0
+  lo to 2 times ni	
+
+; #--- phase tables
+; choose whichever suits your needs
+
+; #--- 8 step
+  ph0 = 0
+
+  ph1 = 1 3
+  ph15 = 0 
+  ph16 = 1              
+
+  ph20 = 3 
+  ph21 = 1 1 3 3 
+
+  ph18 = 0 0 0 0 2 2 2 2 
+  ph19 = 0 
+
+  ph10 = 0 2
+
+  ph30 = 0
+  ph31 = 0 2 2 0 2 0 0 2
