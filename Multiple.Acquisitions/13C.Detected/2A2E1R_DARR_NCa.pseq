@@ -9,6 +9,20 @@
 ;  spectra of biomacromolecules, 
 ;  Angewandte Chemie (Int. Ed.) 51, 2731–2735 (2012)
 
+; #----- combinations that can be done using this program
+
+; 1. 2A2E1R-[ 2D-DARR_f + 2D-NCa_f ]
+;    cnst5=60
+
+; 2. 2A2E1R-[ 2D-DARR_f + 2D-N(Ca)Cx_f ] 
+;    cnst5=60, ZGOPTNS = -Dncx
+
+; 3. 2A2E1R-[ 2D-DARR_f + 2D-NC0_f ]
+;    cnst5=180 
+
+; 4. 2A2E1R-[ 2D-DARR_f + 2D-N(Co)Cx_f ]
+;    cnst5=60, ZGOPTNS = -Dncx
+
 
 ; #----- Important Setup Information
 
@@ -96,36 +110,25 @@
 ;cnst13: Ratio SW (13C)/Sw(15N) ~10 for Uniformly labeled samples
 ;l0: Number of 15N edited experiments per 13C experiment
 ;l1: mixing-time=l1*(1/cnst31) for DARR
-;l2: mixing-time=l2*(1/cnst31) for NCx for NCa=0
+;l2: mixing-time=l2*(1/cnst31) for NCx 
 ;l4: current 13C increment number, set=0 in the beginning
 
 
-; #----------- Calculated constants
-;ni: Total number of complex increments on 13C = td1/4
+; #------ bookkeeping and settings
 
-
-; #----------- Indirect dimsnsion settings
-; #---increment dwell time set from inf1
+; #---increment dimension
   "in0=inf1"
-
-; #------mixing time for DARR
-  define pulse mix1
-  "mix1=(1s/cnst31)*l1"
-
-; #------mixing time for NCCx
-; define pulse mix2
-; "mix2=(1s/cnst31)*l2"
-
-; #------indirect incrementation loopcounter
   define loopcounter ni
   "ni=td1/4"
-
-; #-----counter for current expt number
   define loopcounter nexptno
   "nexptno=0"
-
-; #-----set l4 to zero initially
   "l4=0"
+
+; #------darr mixing times
+  define pulse mix1
+  "mix1=(1s/cnst31)*l1"
+  define pulse mix2
+  "mix2=(1s/cnst31)*l2"
 
 ; #-----include
 #include <Avancesolids.incl>
@@ -136,6 +139,7 @@
 
 1 ze
 2 d1 do:f2
+  10u fq=cnst6(bf ppm):f1
 
 ; #---90 deg on 1H
   10u pl2:f2 st0
@@ -200,9 +204,21 @@ label11,
   1u fq=cnst5(bf ppm):f1
   (p20:sp1 ph10):f1 (p20 pl21 ph11):f3
   1u fq=cnst6(bf ppm):f1
+
+#ifdef ncx
+  (p1 pl1 ph15):f1
+#endif
+
   0.1u do:f2
 
+#ifdef ncx
+  0.1u pl10:f2
+  (mix2 pl10 ph0):f2
+  (p1 pl1 ph13):f1
+#endif
+
 ; #---detect 13C	
+  0.1u pl12:f2
   go=2 ph31 cpds2:f2
   3m do:f2
 
@@ -219,21 +235,21 @@ label11,
   1m iu4
   lo to 2 times ni
 
-
 exit
 
-; #--- 8 step phase cycle
-ph1   = 1 3              ; 90 pulse on 1H	
-ph2   = 1                ; simcp 13C
-ph3   = 0                ; simcp 1H
-ph4   = 0 0 2 2          ; simcp 15N
-ph5   = 1 3 3 1          ; 15N 90 after simcp
-ph14  = 0 0 0 0 2 2 2 2  ; 13C 90 before mix (quad)
-ph6   = 0                ; darr 1H irradiation
-ph7   = 0 0 2 2 0 0 2 2  ; 13C 90 after mix
-ph8   = 1                ; 13C dephasing pulse after 1aq
-ph9   = 3 1 1 3          ; 15N 90 to bring back Z mag (quad)
-ph10  = 0 0 0 0 2 2 2 2  ; SPECIFIC CP on 13C
-ph11  = 0                ; SPECIFIC CP on 15N
-ph31  = 0 2 2 0 2 0 0 2  ; reciever
-
+; #---phase tables
+; full=8 
+  ph0 = 0
+  ph1   = 1 3           
+  ph2   = 1            
+  ph3   = 0           
+  ph4   = 0 0 2 2    
+  ph5   = 1         
+  ph14  = 0 0 0 0 2 2 2 2 ; quadrature for darr 
+  ph6   = 0              
+  ph7   = 0 0 2 2       
+  ph8   = 1            
+  ph9   = 3 ; quadrature for nca           
+  ph10  = 0 0 0 0 2 2 2 2 
+  ph11  = 0              
+  ph31  = 0 2 2 0 2 0 0 2 
