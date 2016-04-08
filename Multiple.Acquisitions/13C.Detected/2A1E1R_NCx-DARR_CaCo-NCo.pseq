@@ -1,27 +1,27 @@
-; ############################################################
-; ###### 2A2E1R-[ 3D-NCaCx_f + 3D-CaNCo_f ] ##################
-; ############################################################
+; ############################################################################
+; ###### 2A2E1R-[ 2D-N(Ca)Cx_f +/- 2D-DARR_r + 2D-Ca(N)Co_f +/- NCo_r ########
+; ############################################################################
 
 ; #----- reference
 ; Tata Gopinath and Gianluigi Veglia,
-;  3D DUMAS: Simultaneous acquisition of three-dimensional magic angle
-;  spinning solid-state NMR experiments of proteins 
-;  J. Magn. Reson. (2012) 220, 79-84
-;  doi:10.1016/j.jmr.2012.04.006
+;   Orphan spin operators enable the acquisition of multiple 2D 
+;   and 3D magic angle spinning solid-state NMR spectra
+;   J. Chem. Phys. (2013) 138, 18, 184201
+;   doi:10.1063/1.4803126
 
 ; #----- combinations that can be done using this program
-
-; 1. 2A2E1R-[ 3D-NCaCx_f + 3D-CaNCo_f ]
-;    cnst5=60, cnst7=180
-
-; 2. 2A2E1R-[ 3D-NCaCx_f + 3D-CaN(Co)Cx_f ] 
-;    cnst5=60, cnst7=180, ZGOPTNS = -Dcncx
-
-; 3. 2A2E1R-[ 3D-NCoCx_f + 3D-CoNCa_f ]
-;    cnst5=60, cnst7=180
-
-; 4. 2A2E1R-[ 3D-NCoCx_f + 3D-CoN(Ca)Cx_f ]
-;    cnst5=60, cnst7=180, ZGOPTNS = -Dcncx
+; 1. 2A2E1R-[ 2D-N(Ca)Cx_f +/- 2D-DARR_r + 2D-Ca(N)Co_f +/- NCo_r
+;    set cnst5=60, cnst7=180
+; 
+; 2. 2A2E1R-[ 2D-N(Ca)Cx_f +/- 2D-DARR_r + 2D-Ca(NCo)Cx_f +/- N(Co)Cx_r
+;    set cnst5=60, cnst7=180, ZGOPTNS = -Dcncx
+; 
+; 3. 2A2E1R-[ 2D-N(Co)Cx_f +/- 2D-DARR_r + 2D-Co(N)Ca_f +/- NCa_r
+;    set cnst5=180, cnst7=60
+; 
+; 4. 2A2E1R-[ 2D-N(Co)Cx_f +/- 2D-DARR_r + 2D-Co(NCa)Cx_f +/- N(Ca)Cx_r
+;    set cnst5=180, cnst7=60, ZGOPTNS = -Dcncx
+; #---------------------------------------------------------------------
 
 ; #----- Important Setup Information
 
@@ -32,27 +32,44 @@
 ;    acq-2 will keep overwriting the one from acq-1. No error will be
 ;    detected by topspin if you forget to set it.
 
-; 2. Topspin calculates dataset size for a 3D program by TD0*TD1*TD2
-;    In this pulse seq, dataset size  = 2*TD0*TD1*TD2
+; 2. Topspin calculates dataset size for a 2D program by TD0*TD1
+;    In this pulse seq, dataset size  = 4*TD0*TD1
 ;    This mismatch causes an alert box to pop up and
 ;    the experiment does not start till this is 'OK'd
-;    To avoid this, set TD1=2*(the-TD1-you-would-normally-set)
+;    To avoid this, set TD1=4*(the-TD1-you-would-normally-set)
 ;    The pulse program will internally correct for that
 ;    The "REAL" TD1 for each experiments is given by the loopcounters 
-;    as follows:  TD1 = 2*ni 
+;    as follows:  TD1 = 4*ni,
+;    ====================================================================
+;    =====> This means TD1 has to be a multiple of 8*l5 <================
+;    ====================================================================
+
+; 4. To split the 4 datasets, two experiments must be acquired.
+;    This means that actual NS = 2*NS. So set NS = 1/2 of what you need
 
 ; 3. Processing:
-;    Use the 'split' command and give the folder number (eg 10001)
-;    3D-NCaCx will be in dataset 10001
-;    3D-CaNCo will be in dataset 10002
+;    1. Use the 'split' command and give the folder number (eg 10001)
+;       2D-N(Ca)Cx + 2D-DARR and 2D-Ca(N)Co + NCo  will be in dataset 10001
+;       2D-N(Ca)Cx - 2D-DARR and 2D-Ca(N)Co - NCo  will be in dataset 10002
+;    2. Split 10001 ---> 11001 and 11002
+;    3. Split 10002 ---> 12001 and 12002
+;    4. 11001 + 12001 = N(Ca)Cx
+;    5. 11001 - 12001 = DARR
+;    6. 11002 + 12002 = Ca(N)Co
+;    7. 11002 - 12002 = NCo
 
 ;    Alternatives:
 ;    1. nmrPipe: using the COADD function 
-;       "| nmrPipe -fn COADD -axis Y -cList 1 0 \ " and
-;       "| nmrPipe -fn COADD -axis Y -cList 0 1 \ "        
+;       "| nmrPipe -fn COADD -axis Y -cList 1 0 1 0  \ " --> N(Ca)Cx
+;       "| nmrPipe -fn COADD -axis Y -cList 1 0 -1 0 \ " --> DARR
+;       "| nmrPipe -fn COADD -axis Y -cList 0 1 0 1  \ " --> Ca(N)Co
+;       "| nmrPipe -fn COADD -axis Y -cList 0 1 0 -1 \ " --> NCo   
+
 ;    2. nmrglue/python: numpy array slicing functionality.
-;       "data_1 = data[0::2]" and
-;       "data_2 = data[1::2]"
+;       "data_1 = data[0::4] + data[2::4]" --> N(Ca)Cx
+;       "data_2 = data[0::4] - data[2::4]" --> DARR
+;       "data_3 = data[1::4] + data[3::4]" --> Ca(N)Co
+;       "data_4 = data[1::4] - data[3::4]" --> NCo
 
 ; 5. The indirect acquisition mode is hard-coded to States-TPPI
 ;    you may change to the mc macro according to your version of Topspin
@@ -71,9 +88,9 @@
 ;p2: 1H 90 pulse @ pl2
 ;p1: 13C 90 pulse @ pl1
 ;p3: 15N 90 pulse @ pl3
-;p15: SIMCP from 1H-->13C and 1H-->15N, contact time
-;p20: SPECIFIC CP 15N-->13C or 13C-->15N, contact time
-;p21: specific cp 2 15N-->13C, contact time
+;p15: SIMCP from 1H-->13C and 1H-->15N, contact time 
+;p20: SPECIFIC CP 15N-->13C or 13C-->15N, contact time 
+;p21: specific cp 2 15N-->13C, contact time 
 ;mix1: mixing time for NCaCx experiment, set by l1
 ;mix2: mixing time for CaN(Co)Cx experiment, set by l2
 ;p31: rCW CW pulse, calculated from cnst31 and p32
@@ -100,20 +117,24 @@
 
 ; #------------constants and loops
 ;cnst5: ca. 50 or 180 ppm (Shifted for first N-->C transfer)
-;cnst6: ca. 104 ppm (Center 13C)
+;cnst6: ca. 104 ppm (Center 13C), set to o1p
 ;cnst7: ca. 180 or 50 ppm (Shifted for second N--->C transfer)
 ;cnst31: MAS spinning speed
 ;cnst13: Ratio SW (13C)/Sw(15N) ~10 for Uniformly labeled samples
+;l5: number of 15N-edited experiments per 13C edited experiment
 ;l1: mixing-time=l1*(1/cnst31) for DARR
-;l2: mixing-time=l2*(1/cnst31) for NCx for NCa=0
+;l2: mixing-time=l2*(1/cnst31) for NCx (optional)
+;l4: current c13 increment
+;nexptno: current n15 experiment number, calculated
+
 ; #---------------------------------------------------------------
 
 ; #------ delays and increments
 ;d1: recycle delay
-;d2: indirect increment 1
-;d3: indirect increment 2
-;in2: =inf1
-;in3: =inf2
+;d0: indirect increment 1
+;in0: =inf1
+;dN: =15N dwell time, calculated from l5, cnst13 and in0
+;delta: =difference between c13 and n15 increment delays
 
 ; #------------- shaped pulses
 ;spnam0: linear ramp on 1h during CP
@@ -127,29 +148,30 @@
 
 ; #--------------ZGOPTNS
 ; 1. -Dcncx for darr mixing in second acquisition
-;           i.e. CaN(Co)Cx or CoN(Ca)Cx
+;           i.e. Ca(NCo)Cx or Co(NCa)Cx
 
-; #--------------bookkeeping and settings
+; #---bookkeeping and settings
 
-; #---indirect dimension
-  "in2 = inf1"
-  "in3 = inf2"
+; #---indirect dimension settings
+  "in0=inf1"
   define loopcounter ni
-  "ni = td1/4"
-  define loopcounter ni2
-  "ni2 = td2/2"
-
-; #---darr mixing times
-  define pulse mix1
+  "ni=td1/8"
+  define loopcounter nexptno
+  "nexptno=0"
+  define delay dN
+  "dN=d0"
+  define delay delta
+  "delta=0.1u"
+  "l4=0"
+  
+; #---darr mixing
+  define pulse mix1 
   "mix1=(1s/cnst31)*l1"
-  define pulse mix2
+  define pulse mix2 
   "mix2=(1s/cnst31)*l2"
 
 ; #---for rCWApA decoupling
-  "p31 = (1s/cnst31)*0.98 - p32/2"
-
-; #---include
-#include <Avancesolids.incl>
+  "p31 = (0.98*1s/cnst31) - p32/2"
 
 ; #------ PULSE SEQUENCE STARTS --------------------
 
@@ -168,7 +190,17 @@
 ; #---indirct dimension 1
   0.1u pl12:f2
   0.1u cpds2:f2
-  d2
+  (p1 pl1 ph11):f1 (p3 pl3 ph13):f3
+  
+; #---calculate the increment time on 15N (dN)
+  "nexptno=(l4)/(ni/l5)"
+  "dN=cnst13*(d0-nexptno*in0*ni/l5)"
+
+ ( ralign
+   (p1 pl1 ph5 d0):f1
+   (p3 pl3 ph6 dN):f3
+ ) 
+
   0.1u do:f2
 
 ; #---bidirectional specific cp
@@ -179,43 +211,38 @@
   1u fq=cnst6(bf ppm):f1
   0.1u do:f2
 
-; #---indirect dimension 2
-  0.1u pl12:f2
-  0.1u cpds2:f2
-  d3
-
 ; #---store 15N and prep 13C for DARR mixing
-  (p3 pl3 ph5):f3 (p1 pl1 ph14):f1
+  (p3 pl3 ph11):f3 (p1 pl1 ph13):f1
   0.1u do:f2
 
 ; #---darr mixing
   0.1u pl10:f2
   (mix1 pl10 ph0):f2
-  (p1 pl1 ph13):f1
+  (p1 pl1 ph11):f1
 
 ; #---detect NCaCx
   0.1u pl12:f2
   0.1u cpds2:f2
-  goscnp ph31 
+  goscnp ph31
   0.1u do:f2
 
 ; #---dephase remaining 13C
   6m st
-  (p1 pl1 ph13):f1
+  (p1 pl1 ph11):f1
   6m
 
 ; #---recall 15N
 ; #---and
-; #---bidirectional specific cp
+; #---specific cp
   1u pl21:f3 pl13:f2
   0.1u cw:f2
   1u fq=cnst7(bf ppm):f1
-  (p3 pl3 ph15):f3
+  (p3 pl3 ph11):f3
   (p21:sp2 ph0):f1 (p21 pl21 ph0):f3
   1u fq=cnst6(bf ppm):f1
 
 #ifdef cncx
-  (p1 pl1 ph15):f1
+  (p1 pl1 ph11):f1
 #endif
 
   0.1u do:f2
@@ -229,50 +256,44 @@
 ; #---detect CaNCo
   0.1u pl12:f2
   0.1u cpds2:f2
-  go=2 ph31 
+  go=2 ph31
   0.1u do:f2
 
 ; #---write data
   1m wr #0 if #0 zd
 
-; #---quadrature loop 1
+; #---splitter loop
+  10u ip11*2
+  lo to 2 times 2
+
+; #---quadrature loop
   10u ip2
   10u ip3
   lo to 2 times 2
 
-; #---increment loop 1
-  id2
-  lo to 2 times ni
-
-; #---quadrature loop 2
-  rd2
-  10u ip5
-  10u ip14
+; #---increment loop
+  10u id0
+  iu4
   lo to 2 times 2
-
-; #---increment loop 2
-  id3
-  lo to 2 times ni2
 
 ; #---end of pulse sequence
 
 ; #---phase table
-; min=8 step
-; NS = 8*n
-
+; min=2 step
   ph0 = 0
-  ph13 = 1
-  ph15 = 3
+  ph11 = 1
+  ph13 = 3
 
   ph1 = 1 3
+  ph2 = 0 
+  ph3 = 0 
 
-  ph2 = 0 ; quadrature 1 canco
-  ph3 = 0 ; quadrature 1 ncacx
+  ph5 = 1 ; qudatrature 
+  ph6 = 3 ; quadrature
 
-  ph11 = 0 0 2 2 
-  ph10 = 0 0 0 0 2 2 2 2 
+  ph12 = 0
+  ph10 = 0 
 
-  ph14 = 3 ; quadrature 2 ncacx
-  ph5 = 1 ; quadrature 2 canco
+  ph14 = 3
 
-  ph31 = 0 2 2 0 2 0 0 2
+  ph31 = 0 2 
