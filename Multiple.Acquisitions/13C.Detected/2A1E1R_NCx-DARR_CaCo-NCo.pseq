@@ -207,7 +207,7 @@
   1u pl21:f3 pl13:f2
   0.1u cw:f2
   1u fq=cnst5(bf ppm):f1
-  (p20:sp1 ph10):f1 (p20 pl21 ph11):f3
+  (p20:sp1 ph0):f1 (p20 pl21 ph15):f3
   1u fq=cnst6(bf ppm):f1
   0.1u do:f2
 
@@ -263,12 +263,12 @@
   1m wr #0 if #0 zd
 
 ; #---splitter loop
-  10u ip11*2
+  10u ip15*2
   lo to 2 times 2
 
 ; #---quadrature loop
-  10u ip2
-  10u ip3
+  10u ip5
+  10u ip6
   lo to 2 times 2
 
 ; #---increment loop
@@ -285,15 +285,13 @@
   ph13 = 3
 
   ph1 = 1 3
-  ph2 = 0 
-  ph3 = 0 
+  ph2 = 0   
+  ph3 = 0  
 
   ph5 = 1 ; qudatrature 
   ph6 = 3 ; quadrature
 
-  ph12 = 0
-  ph10 = 0 
 
-  ph14 = 3
+  ph15 = 0
 
   ph31 = 0 2 
