@@ -1,6 +1,7 @@
-; ############################################################################
-; ###### 2A1E1R-[ 2D-N(Ca)Cx_f +/- 2D-DARR_r + 2D-Ca(N)Co_f +/- NCo_r ########
-; ############################################################################
+; ###########################################################
+; ###### 2A1E1R-[ l0 x 2D-N(Ca)Cx_f +/-      2D-DARR_r  #####
+; ######        +      2D-Ca(N)Co_f +/- l0 x NCo_r      #####
+; ###########################################################
 
 ; #----- reference
 ; Tata Gopinath and Gianluigi Veglia,
@@ -41,7 +42,7 @@
 ;    The "REAL" TD1 for each experiments is given by the loopcounters 
 ;    as follows:  TD1 = 4*ni,
 ;    ====================================================================
-;    =====> This means TD1 has to be a multiple of 8*l5 <================
+;    =====> This means TD1 has to be a multiple of 8*l0 <================
 ;    ====================================================================
 
 ; 4. To split the 4 datasets, two experiments must be acquired.
@@ -121,7 +122,7 @@
 ;cnst7: ca. 180 or 50 ppm (Shifted for second N--->C transfer)
 ;cnst31: MAS spinning speed
 ;cnst13: Ratio SW (13C)/Sw(15N) ~10 for Uniformly labeled samples
-;l5: number of 15N-edited experiments per 13C edited experiment
+;l0: number of 15N-edited experiments per 13C edited experiment
 ;l1: mixing-time=l1*(1/cnst31) for DARR
 ;l2: mixing-time=l2*(1/cnst31) for NCx (optional)
 ;l4: current c13 increment
@@ -133,7 +134,7 @@
 ;d1: recycle delay
 ;d0: indirect increment 1
 ;in0: =inf1
-;dN: =15N dwell time, calculated from l5, cnst13 and in0
+;dN: =15N dwell time, calculated from l0, cnst13 and in0
 ;delta: =difference between c13 and n15 increment delays
 
 ; #------------- shaped pulses
@@ -193,8 +194,8 @@
   (p1 pl1 ph11):f1 (p3 pl3 ph13):f3
   
 ; #---calculate the increment time on 15N (dN)
-  "nexptno=(l4)/(ni/l5)"
-  "dN=cnst13*(d0-nexptno*in0*ni/l5)"
+  "nexptno=(l4)/(ni/l0)"
+  "dN=cnst13*(d0-nexptno*in0*ni/l0)"
 
  ( ralign
    (p1 pl1 ph5 d0):f1
