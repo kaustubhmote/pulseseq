@@ -15,3 +15,7 @@ au BufNewFile,BufRead *.pseq setlocal ft=bruker
 au BufNewFile,BufRead pulseprogram setlocal ft=bruker
 autocmd FileType bruker colorscheme neverland
 ################################################
+
+A Example
+!(vim_example.png)
+
