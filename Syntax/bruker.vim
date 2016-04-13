@@ -65,10 +65,12 @@ syn keyword brukConstants td1 td2 td3 td4 td5 td6 nsdone
 highlight link brukConstants Constant
 
 syn match brukFunction "\vdefine\s(list|loopcounter|pulse|delay\s)"
-syn keyword brukFunction #define #ifdef #ifndef #endif
-highlight link brukFunction Function
+syn match brukFunction "\v#(define|ifdef|endif|ifndef)" 
+syn match brukFunction  '\v([''"])(.{-})\1'
+highlight link brukFunction Visual    
 
-
-
+syntax match brukdec        "\vcpd(s*|hd*|ngs*)([0-8])+"
+syntax keyword brukdec      do cw
+highlight link brukdec Todo   
 
 

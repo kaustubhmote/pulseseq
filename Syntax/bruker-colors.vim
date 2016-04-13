@@ -46,7 +46,7 @@ hi Exception       guifg=#87ff00               gui=bold
 hi Float           guifg=#af5fff
 hi FoldColumn      guifg=#5f87af guibg=#121212 gui=none
 hi Folded          guifg=#585858 guibg=#262626 gui=bold
-hi Function        guifg=#87ff00
+hi Function        guifg=#875f5f               gui=bold
 hi Identifier      guifg=#afd75f
 hi Ignore          guifg=#808080 guibg=#080808
 hi IncSearch       guifg=#d7ffaf guibg=#000000
@@ -144,9 +144,9 @@ if &t_Co > 255
    hi ErrorMsg        ctermfg=199 ctermbg=16    cterm=bold
    hi Exception       ctermfg=118               cterm=bold
    hi Float           ctermfg=135
-   hi FoldColumn      ctermfg=67   ctermbg=233 cterm=none
-   hi Folded          ctermfg=240  ctermbg=235 cterm=bold
-   hi Function        ctermfg=118
+   hi FoldColumn      ctermfg=67   ctermbg=233  cterm=none
+   hi Folded          ctermfg=240  ctermbg=235  cterm=bold
+   hi Function        ctermfg=95                cterm=bold
    hi Identifier      ctermfg=149
    hi Ignore          ctermfg=244 ctermbg=232
    hi IncSearch       ctermfg=193 ctermbg=16
