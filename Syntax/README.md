@@ -16,6 +16,6 @@ au BufNewFile,BufRead pulseprogram setlocal ft=bruker
 autocmd FileType bruker colorscheme neverland
 ################################################
 
-A Example
-!(vim_example.png)
+An Example of the sequence looks in vim
+!(vim_example.png?raw=true "Bruker pulse sequence in vim")
 
