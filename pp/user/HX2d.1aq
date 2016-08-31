@@ -1,0 +1,120 @@
+;HX2d
+;$COMMENT=HETCOR with pmlg decoupling on 1H
+;$CLASS=Solids-MAS
+;$DIM=2D
+;$TYPE=HETCOR
+;$SUBTYPE=1-receiver
+
+; #---experiment
+; HX HETCOR 2D
+
+; Issues, suggestions?
+; kaustuberm [at] tifrh [dot] res [dot] in
+
+; #---channels
+; f1: 15N, 13C, 29Si, ... (X)
+; f2: 1H
+; #--------------------------------------------------
+
+; #---pulses        
+;p1: H 90 pulse @ pl1
+;p15: CP from H-->X
+;p5: length of each phase of pmlg for m5m
+; #--------------------------------------------------
+
+; #---power 
+;pl1: H 90 deg pulse  @ p1 us
+;sp1: H PMLG during t1
+;sp0: H, cp
+;pl15: X, cp
+;pl12: H, decoupling 
+; #--------------------------------------------------
+
+; #---delays
+;d1: recycle delay
+;d9: window duration for pmlg (optional)
+; #---------------------------------------------------
+
+; #---loops, cnsts, etc
+;l0: indirect increment loop, initially set to zero
+;l12: number of times the pmlg loop should be looped for each increment (1 or more)
+; #---------------------------------------------------------------------------------
+
+; #---shapes
+;spnam0: linear ramp
+;spnam1: pmlg m5m
+; #---------------------------------------------------
+
+; #---decoupling
+; cpdprg12: 1H high power dec
+; #---------------------------------------------------
+
+; #---channels
+# define H f2
+# define X f1
+
+#include <Avancesolids.incl>
+
+; #---pmlg settings
+  define delay window
+  "window=d9"
+  "p10=10*p5"
+; #------------------------- 			
+	
+; #---loop, cnsts, etc
+  "l0=0" 
+; #--------------------------------
+
+; #---for rCW-ApA 1H decoupling 
+  "d31=1/cnst31"
+  "p31=0.98*d31-p32/2"
+
+; #--default delays
+  "d60 = 0.1u"
+  "d61 = 0.5u"
+  "d62 = 1.0u"
+  "d63 = 10u"
+
+; #---pulse sequence starts
+1 ze
+2 d1 do:H
+  d63 rpp10
+  d63 pl1:H pl15:X
+
+; #---initial 90 on 1H
+  (p1 ph1):H
+
+; #---1H evolution with pmlg (and window, which is optional)
+4 (p10:sp1 ph10^):H
+  window
+  lo to 4 times l0
+
+; #---short cp to X
+  (p15:sp0 ph20):H (p15 ph2):X
+
+; #---detect X with H-decoupling
+  d60 pl12:H
+  d60 cpds2:H
+  go=2  ph31
+  d60 do:H
+
+; #---2D statement
+  10m mc #0 to 2 F1PH(ip1, iu0*l12)
+
+exit
+; #----ends
+
+
+; #---phase table
+; min=2, full=4
+  ph1= 1 3 
+  ph2= 0 0 2 2 
+  ph10= 0 2
+  ph31= 0 2 2 0
+
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3 
+
+
