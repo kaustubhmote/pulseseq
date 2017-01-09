@@ -222,10 +222,10 @@
 #   ifdef hetdec
     d61 pl8:C pl9:N
     d60 cpds8:C cpds9:N
-    go=2
+    go=2 ph31
     d60 do:C do:N
 #   else
-    go=2
+    go=2 ph31
 #   endif
 # endif
 

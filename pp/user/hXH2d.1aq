@@ -185,10 +185,10 @@
 #   ifdef hetdec
     d61 pl8:X
     d60 cpds8:X
-    go=2 
+    go=2 ph31
     d60 do:X
 #   else
-    go=2
+    go=2 ph31
 #   endif
 # endif
 
