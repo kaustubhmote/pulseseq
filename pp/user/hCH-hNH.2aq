@@ -267,10 +267,10 @@
 #   ifdef hetdec
     d61 pl9:N
     d60 cpds9:N
-    go=2 
+    go=2 ph31 
     d60 do:N
 #   else
-    go=2
+    go=2 ph31
 #   endif
 # endif
 
