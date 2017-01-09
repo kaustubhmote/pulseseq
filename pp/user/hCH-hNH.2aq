@@ -141,7 +141,7 @@
   define loopcounter ni
   "ni = td1/4"
   define delay t1evolution
-  "t1evolution = ni*in0 + ni/l0*cnst13*in0"
+  "t1evolution = ni*in0 + ni*cnst13*in0/l0"
 
 ; #---for rCW-ApA heteronuclear decoupling on 1H
   "p31 = (0.98/cnst31)*1s - p32/2"
