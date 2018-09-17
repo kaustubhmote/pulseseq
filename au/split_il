@@ -1,0 +1,251 @@
+//{ Information
+/* 
+ split_il - Splits a ser file for with 'n' ilterleaved datasets
+            into individual datasets 
+ 
+ What it does
+ -----------
+ If a ser file with 100 fids is arranged as follows:
+ FID000, FID001, FID002, ... FID100, 
+ using n=4 will make the following four ser files:
+ 1. FID000, FID004, FID008 ...
+ 2. FID001, FID005, FID009 ...
+ 3. FID002, FID006, FID010 ...
+ 4. FID003, FID007, FID011 ...
+ 
+ Usage
+ -----
+ User is prompted for input of number of interleaved experiments
+ and the first expno where the new ser files should be stored.
+ Remaining ser files will be store in next N-1 consecutive 
+ expnos  
+
+ Reference
+ ---------
+ Based on the 'splitx' au by Eriks Kupce in the 
+ supplementary of the following article:
+ Claridge, T. D. & Kupce, É. NOAH - NMR Supersequences 
+ for Small Molecule Analysis and Structure Elucidation. 
+ Angew. Chem. Int. Ed. (2017). doi:10.1002/anie.201705506,
+ which seems to be in turn based on 'split' au 
+ in the Bruker AU library 
+ 
+ Author
+ ------
+ Kaustubh R. Mote 
+ 
+ Bugs and suggestions
+ --------------------
+ kaustuberm @ tifrh.res.in
+ 
+ Adaptations
+ -----------
+ 1. Arbitrary split number
+ 2. Compatible with 3D data
+*/
+//}
+//{ Variable declarations
+ int size[3];
+ int i, j, td, td1, td2=1, tds, td1s, td2s=1, tdx, tdi;
+ int oexpno, nexpno, byteorder, parmode, direction=0;
+ int split=0, fntype=0;
+ char path[PATH_MAX + 64];
+ int *row;
+ FILE **fp, *fpin;
+//} 
+//{ Parameters
+ FETCHPAR("PARMODE", &parmode)
+ 
+ if (parmode != 1  &&  parmode != 2)
+    STOPMSG("Program is only suitable for 2D or 3D data") 
+
+ //---how many experiments to split into 
+ GETINT("Number of interleaved datasets", split)
+ 
+ //---byteorder
+ FETCHPARS("BYTORDA", &byteorder)
+ 
+ //---number of points in FID (Direct dim)
+ FETCHPARS("TD", &tds)
+ 
+ //---number of points in 1st indirect dim
+ FETCHPAR1("TD", &td1)
+ FETCHPAR1S("TD", &td1s)
+
+ //---number of points in 2nd indirect dim
+ if (parmode == 2) 
+ {
+   FETCHPAR3("TD", &td2)
+   FETCHPAR3S("TD", &td2s)  
+ }
+ else // if this is a 2D
+ {
+ 	td2 = 1;
+ 	td2s = 1;
+ }
+ 	
+ //---bytes in each direct dim FID 
+ td = ((tds + 255) / 256) * 256;
+
+ //---check that sizes are not too large
+ if (td <= 0 || td > 64 * 1024 * 1024)
+     STOPMSG("TD{F2} out of range")
+  
+ if (td1s <= 0 || td1s > 64 * 1024 * 1024)
+     STOPMSG("TD{F1} out of range")
+
+  if (parmode == 2) 
+ {
+   if (td2s <= 0 || td2s > 64 * 1024 * 1024)
+       STOPMSG("TD{F2} out of range")  
+ }         
+                                                              
+ //---tdx is the size of 1 FID of all experiments combined
+ tdx = split * td;
+ 
+ if (parmode == 2)
+ {
+ //---Direction of the split (for 3D)
+   GETINT("Split direction 0 (F1) or 1 (F2)", direction) 
+ 
+   if (direction != 0 && direction != 1)
+       STOPMSG("Incorrect split direction. Should be 0 (F1) or 1 (F2)")
+    
+   if (direction == 0)
+   {
+ 	  if (td1 % split != 0)
+ 	      STOPMSG("Incorrect split number. TD1 is a not a multiple of split")
+ 	  td1 /= split;
+ 	  td1s /= split;
+   }
+   else
+   {
+ 	  if (td2 % split != 0)
+ 	      STOPMSG("Incorrect split number. TD1 is a not a multiple of split")
+ 	  td2 /= split;
+ 	  td2s /= split;
+   }
+ }
+ else // for 2D datasets
+ { 
+   if (td1 % split != 0)
+       STOPMSG("Incorrect split number. TD1 is a not a multiple of split")
+   td1 /= split;
+   td1s /= split;
+ }
+ 
+ //---tdi total number of actual increments
+ tdi = td1s * td2s; 
+  
+ //---number of indirect increments for each
+ GETINT("Confirm the actual number of indirect points per expt", tdi) 
+ //} 
+//{ Check
+ //---abort for too large a tdx
+ if ((double) tdx >= 2. * 1024 * 1024 * 1024 / sizeof(int))
+   STOPMSG("amount of memory requested too large")
+ 
+ if ((double) tdi >= 2. * 1024 * 1024 * 1024 / sizeof(int))
+   STOPMSG("amount of memory requested too large")
+//} 
+//{ Make files for data storage
+ oexpno = expno;
+ nexpno = expno * 100 + 1;
+ GETINT("Enter EXPNO to store new dataset:", nexpno)
+ if (nexpno <= 0)
+     STOPMSG("invalid expno value")
+
+  (void)strcpy(path, ACQUPATH("ser")); 
+  if ((fpin = fopen(path, "rb")) == 0)
+      STOPMSG(strcat(path, " - cannot open file for reading"))     
+                                   
+ //---make output files
+ for(i=0; i<split; i++) {
+   WRAPARAM(nexpno + i)
+   ERRORABORT
+ }
+//} 
+//{ Allocate memory for file array
+ fp = (FILE **) calloc(split, td*tdi);
+ 
+ //---make 'split number of EXPNOs
+ for(i=0; i<split; i++) {
+   expno = nexpno+i;
+   (void)strcpy(path, ACQUPATH("ser"));
+   if((fp[i] = fopen(path, "wb")) == 0)
+     STOPMSG(strcat(path, " - cannot open file for writing"))
+ }
+ 
+ //---allocate memory for reading in one tdx data
+ expno = oexpno;
+ if((row = (int*)malloc(tdx * sizeof(int))) == 0)
+   STOPMSG("cannot get enough memory")
+//}
+//{ Splitting
+ Show_status("splitting data"); 
+  
+ //---loop equal to actual increment number of times
+ for (i=0; i<tdi; i++) {
+   //---read in one tdx line into row from fpin
+   if (fread(row, sizeof(int), tdx, fpin) != (size_t)(tdx))
+     STOPMSG("read failed")
+       
+   //---byteorder    
+   local_swap4(row, tdx*sizeof(int), byteorder);
+   
+   //---loop split number of times on each row
+   for (j=0; j<split; j++) {
+   	//---read td bytes in succession and put in oe row of fp
+    if (fwrite(row+j*td, sizeof(int), td, fp[j]) != (size_t)(td))
+      STOPMSG("write failed")
+   }
+ }
+
+ //---free resources
+ Show_status("Done, cleaning up");
+  
+ for (i=0; i<split; i++) {
+     fclose(fp[i]);
+ } 
+ fclose(fpin);
+ free(row); 
+//}
+//{ Update records
+ Show_status("Updating records and generating audit entry");
+
+ strcpy(path, ACQUPATH(0));
+ byteorder = local_endian();
+ size[0] = td;
+ size[1] = td1s;
+ size[2] = td2s;
+ 
+ for(i=0; i<split; i++) {
+   double ymin, ymax;
+   char autext[PATH_MAX + 256];
+   char* hashbuf = autext + sprintf(autext, "created by splitx");
+   hashbuf += sprintf(hashbuf, " %d", split);
+ 
+   hashbuf += sprintf(hashbuf, " %d. dataset from\n %s", i+1, path);
+   DATASET(name, nexpno + i, procno, disk, user)
+   STOREPARS("BYTORDA", byteorder)
+   STOREPAR1("TD", td1)
+   STOREPAR1S("TD", td1s)
+   if (parmode == 2)
+   {
+     STOREPAR3("TD", td2)
+     STOREPAR3S("TD", td2s)
+   }
+   if (CheckSumFileMax(ACQUPATH("ser"), 0, hashbuf, 0, 0, byteorder, 0,
+       parmode+1, tds, size, size, &ymin, &ymax) > 0)
+     {
+       (void)AuditCreate(ACQUPATH("audita.txt"), autext);
+       STOREPARS("YMIN_a", ymin)
+       STOREPARS("YMAX_a", ymax)
+     }
+     
+   REFRESHDATA
+ }
+ 
+ 
+ QUIT
+//}
