@@ -1,0 +1,10 @@
+; rCW-ApA (low power, fast MAS)
+; Ref: Equbal et al., J Chem Phys (2017), 146, 8, 084202
+; pcpd = N*taur, N ~ 4*(nu_r/nu_1)
+1 pcpd*0.2125:0
+  pcpd*0.0750:90
+  pcpd*0.2125:0
+  pcpd*0.2125:180
+  pcpd*0.0750:90
+  pcpd*0.2125:180
+jump to 1
