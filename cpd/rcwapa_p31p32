@@ -1,0 +1,11 @@
+; rCW-ApA (high power, low-moderate MAS)
+; Ref: Equbal et al., Chem Phys Lett (2015), 635, 339-344
+; p31 = 0.98*taur - 0.5*p32
+; p32 = 180 deg pulse
+1 p31:0
+  p32:90
+  p31:0
+  p31:180
+  p32:90
+  p31:180
+jump to 1
