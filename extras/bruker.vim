@@ -1,6 +1,6 @@
 " Vim syntax file
-" Language:     Bruker Pulse Program
-" Maintainer:
+" Language: Bruker Pulse Program
+" Maintainer: Kaustubh R. Mote
 " Last Change:  
 " Credits:      
 
