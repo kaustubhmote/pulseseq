@@ -12,7 +12,7 @@ import sys, os
 # or 'python3'. Else, you can use python from a specific environment as is
 # given below. If you plan to use NMRGlue, make sure that this python has 
 # access to numpy and scipy libraries
-cpython = '~/miniconda/envs/nmr-py37/bin/python'
+cpython = '/home/kaustubh/miniconda/envs/nmr-py37/bin/python'
 
 # Folder of the TOPSPIN directory
 try:
