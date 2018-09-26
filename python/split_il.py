@@ -1,3 +1,34 @@
+'''
+split_il.py: Splits a ser file with 'n' ilterleaved datasets
+            into individual datasets 
+ 
+ What it does
+ -----------
+ If a ser file with 100 fids is arranged as follows:
+ FID000, FID001, FID002, ... FID100, 
+ using n=4 will make the following four ser files:
+ 1. FID000, FID004, FID008 ...
+ 2. FID001, FID005, FID009 ...
+ 3. FID002, FID006, FID010 ...
+ 4. FID003, FID007, FID011 ...
+ 
+ Usage
+ -----
+ User is prompted for input of number of interleaved experiments
+ and the first expno where the new ser files should be stored.
+ Remaining ser files will be store in next N-1 consecutive 
+ expnos  
+
+ Author
+ ------
+ Kaustubh R. Mote 
+ 
+ Bugs and suggestions
+ --------------------
+ kaustuberm @ tifrh.res.in
+ 
+'''
+
 import os
 from subprocess import Popen, PIPE, STDOUT 
 from base import cpython, toppath, scriptname
