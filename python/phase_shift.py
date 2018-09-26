@@ -1,12 +1,7 @@
 import sys, os
 from subprocess import Popen, PIPE, STDOUT
+from base import cpython, toppath, scriptname
 
-# Scripts to run
-python = '/home/kaustubh/miniconda/envs/nmr-py37/bin/python'
-scriptdir = '/opt/topspin3.5pl7/exp/stan/nmr/py/user/'
-script = os.path.join(scriptdir, 'temp.py')
-
-# Get Input from user
 cd = CURDATA()
 curdir = os.path.join(cd[3], cd[0])
 iexpno = cd[1]
@@ -52,22 +47,22 @@ else:
 
 if confirm[0].lower() in ['yes', 'y']:
 
-    with open(script, 'w') as outfile:
+    with open(scriptname, 'w') as outfile:
         outfile.write(cpyscript)
 
-    p = Popen([python, script, curdir, iexpno, oexpno, phase], 
-           stdin=PIPE, stdout=PIPE, stderr=STDOUT)
+    p = Popen([cpython, scriptname, curdir, iexpno, oexpno, phase], 
+               stdin=PIPE, stdout=PIPE, stderr=STDOUT)
     p.stdin.close()
 
     # Alert if the actual script fails 
-    el = []	
+    errmsg = []	
     for line in iter(p.stdout.readline, ''):
-        el.append(line)
+        errmsg.append(line)
 	 
-    if not el:
+    if not errmsg:
         MSG('Program ended successfully')
     else:
-        MSG(''.join(el))
+        MSG(''.join(errmsg))
 
     p.stdout.close()
     p2 = Popen(['rm', 'temp.py'])

@@ -1,15 +1,6 @@
 import os
 from subprocess import Popen, PIPE, STDOUT 
-
-python = '/home/kaustubh/miniconda/envs/nmr-py37/bin/python'
-
-try:
-    toppath = sys.registry['XWINNMRHOME'] 
-except:
-    toppath = sys.getEnviron()['XWINNMRHOME'] 
-
-script = os.path.join(toppath, 'exp', 'stan', 'nmr', 
-                      'py', 'user', 'temp.py')
+from base import cpython, toppath, scriptname
 
 curdir = CURDATA()
 idir = os.path.join(curdir[3], curdir[0])
@@ -60,10 +51,10 @@ for i in range(split):
     subprocess.run(['cp', '-r', idir_pdata, odir])
 '''
 
-with open(script, 'w') as scriptfile:
+with open(scriptname, 'w') as scriptfile:
     scriptfile.write(cpyscript)
 
-p = Popen([python, script, idir, iexpno, oexpno, split], 
+p = Popen([cpython, scriptname, idir, iexpno, oexpno, split], 
            stdin=PIPE, stdout=PIPE, stderr=STDOUT)
 p.stdin.close()
 
