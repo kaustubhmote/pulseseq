@@ -1,3 +1,22 @@
+'''
+phase_shift: adds an arbitrary phase shift to the raw FID/SER file
+and writes it to a new directory
+
+Usage
+-----
+User will be prompted for the experiment number to output the file to 
+and the phase shift in degrees
+
+Author
+------
+Kaustubh R. Mote
+
+Bugs/Suggestions
+----------------
+kaustuberm@tifrh.res.in
+
+'''
+
 import sys, os
 from subprocess import Popen, PIPE, STDOUT
 from base import cpython, toppath, scriptname
