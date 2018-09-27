@@ -7,11 +7,24 @@ this
 """
 import sys, os
 
-# Change this line to point the python you want to use. If you want to
-# python installation from your system, just change it to 'python', 'python2',
-# or 'python3'. Else, you can use python from a specific environment as is
-# given below. If you plan to use NMRGlue, make sure that this python has 
-# access to numpy and scipy libraries
+# CPYTHON installation to be used for processing
+
+# Linux
+# Change this line to point the python you want to use. 
+# Eg '/usr/bin/python' or '/usr/bin/python3'. Use full filepaths
+# Else, you can use python from a specific environment as is# given below. 
+# This python should have access to nmrglue, numpy, scipy. 
+
+# Mac
+# Untested
+
+# Windows:
+# Use <pythonpath>\python.exe as your path. This python should have access
+# to nmrglue, scipy and numpy
+# All Popen processes in files should be run via shell in Windows
+# For all scripts, add 'shell=True' argument to all 'Popen' functions
+
+# TODO: make the subprocess commands OS agnostic
 cpython = '/home/kaustubh/miniconda/envs/nmr-py37/bin/python'
 
 # Folder of the TOPSPIN directory
