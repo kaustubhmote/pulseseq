@@ -47,7 +47,7 @@ iexpno, oexpno, split = INPUT_DIALOG(
             types=['', '', ''])
 
 cpyscript = '''
-import os, subprocess
+import os
 from sys import argv
 import nmrglue as ng
 import numpy as np
@@ -78,8 +78,7 @@ dic['acqu2s']['TD'] = td[1] // split
 for i in range(split):
     odir = os.path.join(idir, str(int(oexpno) + i)) 
     idir_pdata = os.path.join(idir, iexpno, 'pdata') 
-    ng.bruker.write(odir, dic, outdata[i], overwrite=True)
-    subprocess.run(['cp', '-r', idir_pdata, odir])
+    ng.bruker.write(odir, dic, outdata[i], make_pdata=True, overwrite=True)
 '''
 
 with open(scriptname, 'w') as scriptfile:

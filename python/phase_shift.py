@@ -34,7 +34,6 @@ outdir, phase = INPUT_DIALOG(title='Shift the phase of raw FID',
                 comments=['1', '1'])
 
 cpyscript = '''
-import subprocess
 import os
 import nmrglue as ng
 import numpy as np
@@ -48,11 +47,10 @@ phase = np.pi/180 * float(argv[4])
 indir = os.path.join(curdir, curexpno)
 outdir = os.path.join(curdir, outexpno)
 
-dic, data = ng.bruker.read(indir)
+dic, data = ng.bruker.read(indir, read_procs=True)
 data *= np.exp(1j * phase) 
 
-subprocess.run(['cp', '-r', indir, outdir])
-ng.bruker.write(outdir, dic, data, overwrite=True)
+ng.bruker.write(outdir, dic, data, make_pdata=True, overwrite=True)
 '''
 
 if os.path.exists(os.path.join(curdir, oexpno)):
@@ -62,6 +60,7 @@ if os.path.exists(os.path.join(curdir, oexpno)):
         values=['No'],
         types=[''])
 else:
+
     confirm = ['yes']
 
 if confirm[0].lower() in ['yes', 'y']:
