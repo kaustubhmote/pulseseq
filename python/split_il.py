@@ -62,18 +62,18 @@ td = [1] * ndim
 for i in range(ndim):
     if i==0:
         td[i] = dic['acqus']['TD'] // 2
-        dic['acqu'] = dic['acqus']
     else:
         td[i] = dic['acqu' + str(i+1) + 's']['TD']
-        dic['acqu' + str(i+1)] = dic['acqu' + str(i+1) + 's']
+
+for acqfile in 'acqu2', 'acqu2s':
+    dic[acqfile]['TD'] = td[1] // split
+
 inc = np.product(td[1:])
 data = data.reshape(inc, -1)
 
 outdata = {} 
 for i in range(split):
     outdata[i] = data[i::split]
-
-dic['acqu2s']['TD'] = td[1] // split
 
 for i in range(split):
     odir = os.path.join(idir, str(int(oexpno) + i)) 
