@@ -49,7 +49,7 @@ iexpno, oexpno, split = INPUT_DIALOG(
 MSG(cpython)
 
 cpyscript = '''
-import os, subprocess
+import os
 from sys import argv
 import nmrglue as ng
 import numpy as np
@@ -64,15 +64,15 @@ td = [1] * ndim
 for i in range(ndim):
     if i==0:
         td[i] = dic['acqus']['TD'] // 2
-        dic['acqu'] = dic['acqus']
     else:
         td[i] = dic['acqu' + str(i+1) + 's']['TD']
-        dic['acqu' + str(i+1)] = dic['acqu' + str(i+1) + 's']
 
 inc = np.product(td[1:])
 data = data.reshape(inc, -1)
 td_one_exp =  td[1] // split
-dic['acqu2s']['TD'] = td_one_exp
+
+for acqufile in 'acqu2', 'acqu2s':
+    dic[acqufile]['TD'] = td_one_exp
 
 outdata = {} 
 for i in range(split):
@@ -81,8 +81,7 @@ for i in range(split):
 for i in range(split):
     odir = os.path.join(idir, str(int(oexpno) + i)) 
     idir_pdata = os.path.join(idir, iexpno, 'pdata') 
-    ng.bruker.write(odir, dic, outdata[i], overwrite=True)
-    subprocess.run(['cp', '-r', idir_pdata, odir])
+    ng.bruker.write(odir, dic, outdata[i], make_pdata=True, overwrite=True)
 '''
 
 with open(scriptname, 'w') as scriptfile:
