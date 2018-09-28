@@ -46,8 +46,6 @@ iexpno, oexpno, split = INPUT_DIALOG(
             values=[iexpno, oexpno, '2'],
             types=['', '', ''])
 
-MSG(cpython)
-
 cpyscript = '''
 import os
 from sys import argv
