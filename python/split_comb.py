@@ -47,7 +47,7 @@ iexpno, oexpno, split, f1coeff = INPUT_DIALOG(
             items=['Dataset to split and combine (EXPNO)', 
                    'EXPNO of combined dataset', 
                    'Number of experiments to split into',
-                   'f1coeff (comma/whitespace separetd)'],
+                   'F1-COEFF (comma/whitespace separetd)'],
             values=[iexpno, oexpno, '2', '1 1'],
             types=['', '', '', ''])
 
@@ -62,34 +62,33 @@ split = int(split)
 f1coeffs = [int(i) for i in f1coeff.replace(',', ' ').split()]
 
 if len(f1coeffs) != split:
-    print('F1 coeffs do not match number of experiments to split')
-else:
-    dic, data = ng.bruker.read(os.path.join(idir, iexpno))
-    ndim = dic['acqus']['PARMODE'] + 1
+    raise ValueError('F1 coeffs do not match number of experiments to split')
 
-    td = [1] * ndim
-    for i in range(ndim):
-        if i==0:
-            td[i] = dic['acqus']['TD'] // 2
-        else:
-            td[i] = dic['acqu' + str(i+1) + 's']['TD']
+dic, data = ng.bruker.read(os.path.join(idir, iexpno), 
+            read_pulseprogram=False)
+ndim = dic['acqus']['PARMODE'] + 1
 
-    for acqfile in 'acqu2', 'acqu2s':
-        dic[acqfile]['TD'] = td[1] // split
+acqfile = 'acqu' + str(ndim)
+dic[acqfile]['TD'] = data.shape[0] // split
+dic[acqfile + 's']['TD'] = data.shape[0] // split
 
-    inc = np.product(td[1:])
-    data = data.reshape(inc, -1)
+dic['acqu']['NS'] = dic['acqu']['NS'] * split 
+dic['acqus']['NS'] =  dic['acqus']['NS'] * split
 
-    outdata = {} 
-    for i in range(split):
-        outdata[i] = data[i::split]
+inc = np.product(data.shape[:-1])
+data = data.reshape(inc, -1)
 
-    combined = np.zeros(outdata[i].shape, dtype=outdata[0].dtype)
-    for i in range(split):
-        combined += f1coeffs[i] * outdata[i]
+outdata = {} 
+for i in range(split):
+    outdata[i] = data[i::split]
 
-    odir = os.path.join(idir, oexpno) 
-    ng.bruker.write(odir, dic, combined, make_pdata=True, overwrite=True)
+combined = np.zeros(outdata[i].shape, dtype=outdata[0].dtype)
+for i in range(split):
+    combined += f1coeffs[i] * outdata[i]
+
+odir = os.path.join(idir, oexpno) 
+ng.bruker.write(odir, dic, combined, make_pdata=True,
+                write_prog=False, overwrite=True)
 '''
 
 with open(scriptname, 'w') as scriptfile:
