@@ -12,28 +12,63 @@ Bugs/Suggestions
 kaustuberm@tifrh.res.in
 '''
 
-import sys, os
+import sys, os 
 from subprocess import Popen, PIPE, STDOUT
 
-# CPYTHON installation to be used for processing
+def cpython(cpyname='/home/kaustubh/miniconda/envs/nmr-py37/bin/python', args=sys.argv):
+    """
+    Sets the path for the executable for Cpython to be used
 
-# Linux
-# Change this line to point the python you want to use. 
-# Eg '/usr/bin/python' or '/usr/bin/python3'. Use full filepaths
-# Else, you can use python from a specific environment as is# given below. 
-# This python should have access to nmrglue, numpy, scipy. 
+    Parameters
+    ----------
+    cpyscript : str
+        path to the cpython executable
 
-# Mac
-# Untested
+    Returns
+    -------
+    cpyscript : str
+        path to the executable.
+        Checks whether the xcpy.py script was invoked with the -p or --python
+        argumetnt and if yes, pops open a dialog box to ask/show the cpython
+        that is being used
 
-# Windows:
-# Use <pythonpath>\python.exe as your path. This python should have access
-# to nmrglue, scipy and numpy
-# All Popen processes in files should be run via shell in Windows
-# For all scripts, add 'shell=True' argument to all 'Popen' functions
+    Notes
+    -----
+    LINUX
+    Change this line to point the python you want to use. 
+    Eg '/usr/bin/python3' or a specific environment (as is the default)
+    Use full filepaths, Eg  (1) use '/usr/bin/python', not 'python' 
+                            (2) use '/home/env/python' not '~/env/python'
+                            (3) use '/home/enc/python' not '$HOME/env/python' 
 
-cpython = '/home/kaustubh/miniconda/envs/nmr-py37/bin/python'
+    MACINTOSH
+    Untested
 
+    WINDOWS
+    C:\<PATH-TO-PYTHON>\python.exe (needs to be specified with the .exe extension)
+    
+    """
+    # check if script is invoked with '-p or --python argumet'
+    # this opens up a dialog box to take in python to use
+    if len(args) >= 3:
+        if args[2] in ['-p', '--python']:
+            cpyname = INPUT_DIALOG(title='PYTHON EXECUTABLE',
+                                   header="""
+                                   Specify python executable to use. 
+                                   See the guide in docstring for the set_cpython 
+                                   function in 'xcpy.py' for more information on how 
+                                   to specify this paths.
+                                   """,
+                    items=['CPython Executable'],
+                    values=[cpyname],
+                    types=[''],
+                    comments=[''])
+        return str(cpyname[0])
+    else:
+        return cpyname
+
+# set the python executable
+cpy_executable = cpython()
 # Folder of the TOPSPIN directory
 try:
     # TOPSPIN > 3.1
@@ -42,6 +77,9 @@ except:
     # TOPSPIN < 3.1
     toppath = sys.getEnviron()['XWINNMRHOME'] 
 
+# Folder for the cpython scripts
+cpyfolder = os.path.join(toppath, 'exp', 'stan', 'nmr', 'py', 'user', 'cpython')
+
 # Get current data folders
 try:
     cd = CURDATA()
@@ -49,28 +87,35 @@ try:
     curexpno = cd[1]
     curprocno = cd[2]
 except:
-    raise ValueError('No datafolder detected.
-    You have to join an experient to execute this command.')
+    raise ValueError('No datafolder detected.n You have to join an experient to execute this command.')
 
 # get scriptname
 cpyscript = sys.argv[1]
-scriptname = os.path.join(toppath, 'exp', 'stan', 'nmr',
-                          'py', 'user', 'cpython', cpyscript)
+# check if file exists, and try with a .py extension as well
+scriptname = os.path.join(cpyfolder, cpyscript) 
+if not os.path.isfile(scriptname):
+    scriptname = os.path.join(cpyfolder, cpyscript+'.py')
+    if not os.path.isfile(scriptname):
+        raise NameError('The cpython script {} does not exist'.format(cpyscript))
 
-if os.path.isfile(scriptname):
-    # TO DO: make the subprocess commands OS agnostic
-    p = Popen([cpython, scriptname, curdir, curexpno, curprocno], 
-               stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-    p.stdin.close()
-
-    # Alert if the actual script fails 
-    errmsg = []	
-    for line in iter(p.stdout.readline, ''):
-       errmsg.append(line)
-             
-    if not errmsg:
-        MSG('Program ended successfully')
-    else:
-        MSG(''.join(errmsg))
+# Use shell if the OS is Windows. Needs to be tested on multiple OSs
+if os.name == 'nt':
+    use_shell = True
 else:
-    MSG('{} does not exist'.format(scriptname))
+    use_shell = False
+
+# RUN the cpython script giving it information on the current dataset
+p = Popen([cpy_executable, scriptname, curdir, curexpno, curprocno], 
+           stdin=PIPE, stdout=PIPE, stderr=STDOUT, shell=use_shell)
+p.stdin.close()
+
+# Read in any stdout messege if the cpython script fails 
+errmsg = []	
+for line in iter(p.stdout.readline, ''):
+   errmsg.append(line)
+         
+# Display the error message
+if not errmsg:
+    MSG('Script executed to completion.')
+else:
+    MSG(''.join(errmsg))
