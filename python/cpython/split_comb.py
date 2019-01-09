@@ -1,108 +1,118 @@
 '''
-split_il.py: Splits a ser file with 'n' ilterleaved datasets
-            into individual datasets 
+split_comb.py: combines datasets based on f1coeffs 
  
- What it does
- -----------
- If a ser file with 100 fids is arranged as follows:
- FID000, FID001, FID002, ... FID99, 
- using split=4 will first generate the following files:
- [A] FID000, FID004, FID008 ...
- [B] FID001, FID005, FID009 ...
- [C] FID002, FID006, FID010 ...
- [D] FID003, FID007, FID011 ...
+What it does
+-----------
+Take is a series of FIDs and splits them either sequentially or in 
+an interleaved manner into 'N' different FIDS, (Eg A, B, C, D)
+Takes in f1coeffs (Eg 1, -1, -1, 1) and combines the 'N' fids according to
+the f1coeffs [A - B - C + D] 
+ 
+Usage
+-----
+User is propmted for:
+1. EXPNO to split and combine. This can be given in two ways,
+2. Number of experiments to split up into
+3. Sequentially splitting or interleaved splitting
+2. F1COEFFs
 
- and these will then be combined using f1coeffs
- Eg, if f1coeffs = 1, -1, -1, 1;
- output file will be [A - B - C + D]
+Author
+------
+Kaustubh R. Mote 
  
- Usage
- -----
- User is prompted for input of number of interleaved experiments
- and the first expno where the new ser files should be stored.
- Remaining ser files will be store in next N-1 consecutive 
- expnos  
-
- Author
- ------
- Kaustubh R. Mote 
- 
- Bugs and suggestions
- --------------------
- kaustuberm @ tifrh.res.in
+Bugs and suggestions
+--------------------
+kaustuberm @ tifrh.res.in
  
 '''
 
-import os
-from subprocess import Popen, PIPE, STDOUT 
-from base import cpython, toppath, scriptname
-
-curdir = CURDATA()
-idir = os.path.join(curdir[3], curdir[0])
-iexpno, oexpno = curdir[1], curdir[1] + '00'
-
-iexpno, oexpno, split, f1coeff = INPUT_DIALOG(
-            title='Split Interleaved',
-            header='Split an interleaved dataset',
-            items=['Dataset to split and combine (EXPNO)', 
-                   'EXPNO of combined dataset', 
-                   'Number of experiments to split into',
-                   'F1-COEFF (comma/whitespace separetd)'],
-            values=[iexpno, oexpno, '2', '1 1'],
-            types=['', '', '', ''])
-
-cpyscript = '''
 import os
 from sys import argv
 import nmrglue as ng
 import numpy as np
+from base import dialog
 
-idir, iexpno, oexpno, split, f1coeff = argv[1:]
+
+# default imports from xcpy
+name, curdir, curexpno, curprocno = argv
+oexpno = curexpno + '00'
+
+
+# get parameters from the user
+iexpno, oexpno, split, arrangement, f1coeff, overwrite = dialog(
+            header='Split Interleaved',
+            info='Split an interleaved dataset',
+            labels=['Dataset to split and combine (EXPNO)', 
+                   'EXPNO of combined dataset', 
+                   'Number of experiments to split into',
+                   'How are multiple datasets arraged',
+                   'F1-COEFF (comma/whitespace separetd)',
+                   'Overwrite'],
+            types=['e', 'e', 'e', 'd', 'e', 'c'],
+            values=[curexpno, '20010', '6', ['Sequential', 'Interleaved'], '1 1 1 1 1 1', ''],
+            comments=[])
+
+
+# split and f1coeffs
 split = int(split)
 f1coeffs = [int(i) for i in f1coeff.replace(',', ' ').split()]
 
-if len(f1coeffs) != split:
-    raise ValueError('F1 coeffs do not match number of experiments to split')
 
-dic, data = ng.bruker.read(os.path.join(idir, iexpno), 
-            read_pulseprogram=False)
+# Check if an output directory exists if overwriting is not allowed
+if 'selected' not in overwrite:
+    overwrite = False
+    if os.path.isdir(os.path.join(curdir, oexpno)):
+        raise ValueError('Expno {} exists!'.format(oexpno))
+else:
+    overwrite = True
+
+
+# check if number of f1coeffs and split matches
+if len(f1coeffs) != split:
+    raise ValueError('Number of F1 coeffs do not match the number of experiments to split.')
+
+
+# read the data
+dic, data = ng.bruker.read(os.path.join(curdir, iexpno), 
+                           read_pulseprogram=False)
+
+
+# get the dimension of data
 ndim = dic['acqus']['PARMODE'] + 1
 
-acqfile = 'acqu' + str(ndim)
-dic[acqfile]['TD'] = data.shape[0] // split
-dic[acqfile + 's']['TD'] = data.shape[0] // split
 
-dic['acqu']['NS'] = dic['acqu']['NS'] * split 
-dic['acqus']['NS'] =  dic['acqus']['NS'] * split
+# correct the number of increments and the number of scans
+acqus_files = ['acqu{}s'.format(i) for i in range(2, ndim+1)]
 
+# make a 2D data
 inc = np.product(data.shape[:-1])
 data = data.reshape(inc, -1)
 
-outdata = {} 
-for i in range(split):
-    outdata[i] = data[i::split]
 
+# split data
+outdata = {}
+if arrangement == 'Interleaved':
+    for i in range(split):
+        outdata[i] = data[i::split]
+elif arrangement == 'Sequential':
+    td_one_exp =  dic[acqus_files[-1]]['TD'] // split 
+    for i in range(split):
+        outdata[i] = data[i*td_one_exp : (i+1)*td_one_exp]
+
+
+# combine data using f1coeffs
 combined = np.zeros(outdata[i].shape, dtype=outdata[0].dtype)
 for i in range(split):
     combined += f1coeffs[i] * outdata[i]
 
-odir = os.path.join(idir, oexpno) 
-ng.bruker.write(odir, dic, combined, make_pdata=True,
-                write_prog=False, overwrite=True)
-'''
 
-with open(scriptname, 'w') as scriptfile:
-    scriptfile.write(cpyscript)
+# correct the number of scans and increments in acqus files
+dic[acqus_files[-1]]['TD'] = data.shape[0] // split
+dic['acqus']['NS'] =  dic['acqus']['NS'] * split
 
-p = Popen([cpython, scriptname, idir, iexpno, oexpno, split, f1coeff], 
-           stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-p.stdin.close()
 
-errmsg = ''
-for line in iter(p.stdout.readline, ''):
-    errmsg += line
-
-if errmsg:
-    MSG(errmsg)
-else:
-    MSG('Finished Succesfully')
+# write
+odir = os.path.join(curdir, oexpno) 
+ng.bruker.write(odir, dic, combined, write_prog=False, 
+                write_procs=True, pdata_folder=True,
+                overwrite=overwrite)
