@@ -57,9 +57,13 @@ split = int(split)
 
 # Check if an output directory exists if overwriting is not allowed
 if 'selected' not in overwrite:
+    overwrite = False
     for i in range(split):
         if os.path.isdir(os.path.join(curdir, str(int(oexpno)+i))):
             raise ValueError('Expno {} exists!'.format(str(int(oexpno)+i)))
+else:
+    overwrite = True
+
 
 # Read the data
 dic, data = ng.bruker.read(indir)
@@ -86,6 +90,6 @@ for i in range(split):
 # Write in 'split' number of dataset
 for i in range(split):
     odir = os.path.join(curdir, str(int(oexpno) + i)) 
-    ng.bruker.write(odir, dic, outdata[i], overwrite=True,
+    ng.bruker.write(odir, dic, outdata[i], overwrite=overwrite,
                     write_procs=True, pdata_folder=True)
 

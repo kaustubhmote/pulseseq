@@ -57,6 +57,16 @@ iexpno, oexpno, numexpt, f1coeff, overwrite = dialog(
 iexpno = iexpno.replace(',', ' ').split()
 iexpno = [int(i) for i in iexpno]
 
+
+# Check if an output directory exists if overwriting is not allowed
+if 'selected' not in overwrite:
+    overwrite = False
+    if os.path.isdir(os.path.join(curdir, oexpno)):
+        raise ValueError('Expno {} exists!'.format(oexpno))
+else:
+    overwrite = True
+
+
 if len(iexpno) == 1:
     numexpt = int(numexpt)
     iexpno = list(range(iexpno[0], iexpno[0]+numexpt))
@@ -119,6 +129,6 @@ dic['acqu']['NS'] = dic['acqu']['NS'] * numexpt
 # set output directory
 odir = os.path.join(curdir, oexpno)
 # write
-ng.bruker.write(odir, dic, combined, overwrite=True, 
+ng.bruker.write(odir, dic, combined, overwrite=overwrite, 
                 write_procs=True, pdata_folder=True,
                 write_prog=False, )

@@ -54,11 +54,16 @@ iexpno, oexpno, split, overwrite = dialog(
 indir = os.path.join(curdir, iexpno)
 split = int(split)
 
+
 # Check if an output directory exists if overwriting is not allowed
 if 'selected' not in overwrite:
+    overwrite = False
     for i in range(split):
-        if os.path.isdir(os.path.join(indir, str(int(oexpno)+i))):
+        if os.path.isdir(os.path.join(curdir, str(int(oexpno)+i))):
             raise ValueError('Expno {} exists!'.format(str(int(oexpno)+i)))
+else:
+    overwrite = True
+
 
 # Read the data
 dic, data = ng.bruker.read(indir)
@@ -75,12 +80,13 @@ data = data.reshape(inc, -1)
 td_one_exp =  dic[acqus_files[-1]]['TD'] // split
 dic[acqus_files[-1]]['TD'] = td_one_exp
 
+
 outdata = {} 
 for i in range(split):
     outdata[i] = data[i*td_one_exp : (i+1)*td_one_exp]
 
 for i in range(split):
     odir = os.path.join(curdir, str(int(oexpno)+i)) 
-    ng.bruker.write(odir, dic, outdata[i], overwrite=True,
+    ng.bruker.write(odir, dic, outdata[i], overwrite=overwrite,
                     write_procs=True, pdata_folder=True)
 
