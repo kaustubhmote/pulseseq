@@ -29,34 +29,33 @@ kaustuberm @ tifrh.res.in
 '''
 
 import os
-from subprocess import Popen, PIPE, STDOUT 
-from base import cpython, toppath, scriptname
-
-curdir = CURDATA()
-idir = os.path.join(curdir[3], curdir[0])
-iexpno, oexpno = curdir[1], curdir[1] + '00'
-
-iexpno, oexpno, numexpt, f1coeff = INPUT_DIALOG(
-            title='Combine Experiments',
-            header='Combine Mutiple experiments with f1coeffs',
-            items=['EXPNOs or Initial EXPNO to combine', 
-                   'EXPNO for combined dataset', 
-                   'Number of EXPNOs to combine',
-                   'F1-COEFF (comma/whitespace separetd)'],
-            values=[iexpno, oexpno, '0', '1 1'],
-            types=['', '', '', ''],
-            comments=['', '', '(Optional)', ''])
-         
-
-cpyscript = '''
-import os
 from sys import argv
 import nmrglue as ng
 import numpy as np
+from base import dialog
 
-idir, iexpno, oexpno, numexpt, f1coeff = argv[1:]
-iexpno = [int(i) for i in iexpno.replace(',', ' ').split()]
-print(iexpno)
+# default imports from xcpy
+name, curdir, curexpno, curprocno = argv
+
+
+# get the parameters from the user
+oexpno = curexpno + '00'
+iexpno, oexpno, numexpt, f1coeff, overwrite = dialog(
+            header='Combine Experiments',
+            info='Combine Mutiple experiments with f1coeffs',
+            labels=['EXPNOs or Initial EXPNO to combine', 
+                   'EXPNO for combined dataset', 
+                   'Number of EXPNOs to combine',
+                   'F1-COEFF (comma/whitespace separetd)',
+                   'Overwrite'],
+            types=['e', 'e', 'e', 'e', 'c'],
+            values=[curexpno, oexpno, '2', '1 1', ''],
+            comments=['', '', '(Optional)', '', ''])
+
+
+# check if a single experiment number is given
+iexpno = iexpno.replace(',', ' ').split()
+iexpno = [int(i) for i in iexpno]
 
 if len(iexpno) == 1:
     numexpt = int(numexpt)
@@ -64,58 +63,62 @@ if len(iexpno) == 1:
 else:
     numexpt = len(iexpno)
 
+
+# check if there are atleast 2 experiments give to combine
 if len(iexpno) < 2:
     raise ValueError('Need atleast two experiments to combine')
 
+
+# get f1coeffs
 f1coeffs = [int(i) for i in f1coeff.replace(',', ' ').split()]
 if len(f1coeffs) != len(iexpno):
     raise ValueError('F1 coeffs do not match number of experiments to split')
 
+
+# containers for datasets and datashapes
 dataset, datashapes = {}, []
-
-
+# read in experiments
 for expno in iexpno:
-    dic, data = ng.bruker.read(os.path.join(idir, str(expno)), 
+    dic, data = ng.bruker.read(os.path.join(curdir, str(expno)), 
                 read_pulseprogram=False)
     
+    # get data dimensions
     ndim = dic['acqus']['PARMODE'] + 1
     if ndim > 1:
         inc = np.product(data.shape[:-1])
         data = data.reshape(inc, -1)
         datashapes.append(data.shape)
 
+    # store in the container
     dataset[expno] = dic, data
 
+
+# check if all datasets have the same shape
 if len(set(datashapes)) > 1:
     raise ValueError('Not all datasets have the same size')
 
+
+# initilise a matrix to fill in combined dataset
 combined = np.zeros(dataset[iexpno[0]][1].shape, 
-                    dtype=dataset[iexpno[0]][1].dtype) 
+                    dtype=dataset[iexpno[0]][1].dtype)
+
+
+# combine using the f1coeffs
 for i, j in enumerate(iexpno):
     combined += f1coeffs[i] * dataset[j][1]
 
-odir = os.path.join(idir, oexpno)
 
+# correct for the NS
 dic = dataset[iexpno[0]][0] 
 dic['acqus']['NS'] = dic['acqus']['NS'] * numexpt 
+if 'acqu' not in dic.keys():
+    dic['acqu'] = dic['acqus']
 dic['acqu']['NS'] = dic['acqu']['NS'] * numexpt
 
-ng.bruker.write(odir, dic, combined, make_pdata=True,
-                write_prog=False, overwrite=True)
-'''
 
-with open(scriptname, 'w') as scriptfile:
-    scriptfile.write(cpyscript)
-
-p = Popen([cpython, scriptname, idir, iexpno, oexpno, numexpt, f1coeff], 
-           stdin=PIPE, stdout=PIPE, stderr=STDOUT)
-p.stdin.close()
-
-errmsg = ''
-for line in iter(p.stdout.readline, ''):
-    errmsg += line
-
-if errmsg:
-    MSG(errmsg)
-else:
-    MSG('Finished Succesfully')
+# set output directory
+odir = os.path.join(curdir, oexpno)
+# write
+ng.bruker.write(odir, dic, combined, overwrite=True, 
+                write_procs=True, pdata_folder=True,
+                write_prog=False, )
