@@ -52,7 +52,7 @@ iexpno, oexpno, hdim, overwrite = dialog(
                    'Dimension of the Hadamard matrix',
                    'Overwrite'],
             types=['e', 'e', 'd', 'c'],
-            values=[curexpno, '1000', [4, 2, 8, 16, 32, 64, 128], '',],
+            values=[curexpno, oexpno, [2, 4, 8, 16, 32, 64, 128], '',],
             comments=[])
 
 
