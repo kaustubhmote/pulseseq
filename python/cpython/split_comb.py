@@ -107,7 +107,7 @@ for i in range(split):
 
 
 # correct the number of scans and increments in acqus files
-dic[acqus_files[-1]]['TD'] = data.shape[0] // split
+dic[acqus_files[-1]]['TD'] = dic[acqus_files[-1]]['TD'] // split
 dic['acqus']['NS'] =  dic['acqus']['NS'] * split
 
 
