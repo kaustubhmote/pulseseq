@@ -49,7 +49,7 @@ iexpno, oexpno, split, arrangement, f1coeff, overwrite = dialog(
                    'F1-COEFF (comma/whitespace separetd)',
                    'Overwrite'],
             types=['e', 'e', 'e', 'd', 'e', 'c'],
-            values=[curexpno, '20010', '6', ['Sequential', 'Interleaved'], '1 1 1 1 1 1', ''],
+            values=[curexpno, oexpno, '2', [ 'Interleaved', 'Sequential',], '1 1', ''],
             comments=[])
 
 
