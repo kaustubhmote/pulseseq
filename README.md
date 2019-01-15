@@ -16,9 +16,19 @@ Alternatively, you can specify the folders to use directly from Topspin
 
 
 ## Python Programs
-Symlink or copy the following folders/files to the specified places
-- `python/xcpy.py` : TOPSPIN_FOLDER/exp/stan/nmr/py/user/xcpy.py
-- `python/cpython` : TOPSPIN_FOLDER/exp/stan/nmr/py/user/cpython 
+Python programs can be executed from within Topspin using a version of Jython that ships with it.
+Although neat for some simple programs, it lacks the nice features in the Cpython libraries such
+as `numpy` and `scipy`, and the nice API of the `nmrglue` library. This library provides `xcpy.py` 
+which is a simple wrapper around the inbuilt Jython that allows one to execute an external Cpython 
+script while also passing it the current open directory in Topspin and the processing directories.
+It uses the standard `subprocess` module in Jython to achieve this.
+
+
+- Installation
+Symlink or copy the following folders/files to the specified places:
+1. `python/xcpy.py` : TOPSPIN_FOLDER/exp/stan/nmr/py/user/xcpy.py
+2. `python/cpython` : TOPSPIN_FOLDER/exp/stan/nmr/py/user/cpython 
+
 Edit the `xcpy.py` file to specify the location of the (C)Python executable 
 that you want to use (specific instructions can be found in the docstring inside xcpy.py).
 
@@ -39,7 +49,7 @@ the cpython directory using the following syntax on the Topspin commandline:
 
 `xcpy scriptname`
 
-Note that `.py` need not be specified after the scriptname
+Note that `.py` need not be specified after the scriptname.
 
 One can also execute this script with `-p` or `--python` arguments which will allow you to 
 specify a (c)python location and the script location in a GUI.
