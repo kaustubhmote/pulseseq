@@ -1,11 +1,11 @@
 '''
-This file includes some utilities, mainly the paths that are used
-to store temporary scripts and the specific python version that 
-needs to be used in the script.
+xcpy.py
+(To be executed using Jython from within Topspin)
 
-Author
-------
-Kaustubh R. Mote
+Contains the locations of the following items: 
+    - (C)Python that will execute scripts
+    - Will pass the current EXPNO, PROCNO and Folder to the 
+      script that is being executed
 
 Bugs/Suggestions
 ----------------
@@ -35,17 +35,19 @@ def cpython(cpyname='/home/kaustubh/miniconda/envs/nmr-py37/bin/python', args=sy
     Notes
     -----
     LINUX
-    Change this line to point the python you want to use. 
+    Change this default assignment of cpyname to the python you want to use. 
     Eg '/usr/bin/python3' or a specific environment (as is the default)
     Use full filepaths, Eg  (1) use '/usr/bin/python', not 'python' 
                             (2) use '/home/env/python' not '~/env/python'
-                            (3) use '/home/enc/python' not '$HOME/env/python' 
+                            (3) use '/home/env/python' not '$HOME/env/python' 
 
     MACINTOSH
     Untested
 
     WINDOWS
+    Change this default assignment of cpyname to the python you want to use. 
     C:\<PATH-TO-PYTHON>\python.exe (needs to be specified with the .exe extension)
+    
     
     """
     # check if script is invoked with '-p or --python argumet'
@@ -69,6 +71,7 @@ def cpython(cpyname='/home/kaustubh/miniconda/envs/nmr-py37/bin/python', args=sy
 
 # set the python executable
 cpy_executable = cpython()
+
 # Folder of the TOPSPIN directory
 try:
     # TOPSPIN > 3.1
@@ -87,7 +90,7 @@ try:
     curexpno = cd[1]
     curprocno = cd[2]
 except:
-    raise ValueError('No datafolder detected.n You have to join an experient to execute this command.')
+    raise ValueError('No datafolder detected. You have to join an experient to execute this command.')
 
 # get scriptname
 cpyscript = sys.argv[1]
@@ -96,7 +99,7 @@ scriptname = os.path.join(cpyfolder, cpyscript)
 if not os.path.isfile(scriptname):
     scriptname = os.path.join(cpyfolder, cpyscript+'.py')
     if not os.path.isfile(scriptname):
-        raise NameError('The cpython script {} does not exist'.format(cpyscript))
+        raise NameError('The cpython script {} does not exist in the {} folder'.format(cpyscript, cpyfolder))
 
 # Use shell if the OS is Windows. Needs to be tested on multiple OSs
 if os.name == 'nt':
