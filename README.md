@@ -41,8 +41,7 @@ number, processing number and directory to another (c)python script stored in `c
    - (c)python 3.7 and above
    - numpy
    - scipy
-   - nmrglue (Currently github.com/kaustubhmote/nmrglue is required, some essential changes 
-              have not yet merged upstream into githib.com/jjhelmus/nmrglue) 
+   - nmrglue v0.7 
  
 - Execution
 
