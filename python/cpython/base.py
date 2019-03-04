@@ -149,3 +149,45 @@ def dialog(header='', info='', labels=[], types=[],
     # Run
     root.mainloop()
     return entries 
+
+
+
+def text_entry():
+    """ Single Multiline Entry Textbox"""
+
+    from tkinter import Text, Tk, Button
+    root = Tk()
+    root.title('Enter the recombination matrix')
+    root.geometry("600x400")
+    mat = Text(root, height=25, width=80)
+    mat.pack()
+    
+    # get values if Submit is clicked
+    def getvals():
+        global entries
+        rmat = mat.get('1.0', 'end-1c')
+        root.destroy()
+
+    # get no entries if cancel is clicked
+    def cancel():
+        global entries
+        entries = None
+        root.destroy()
+
+    # Submit/Cencel buttons
+    submit = Button(root, text='Submit', command=getvals)
+    cancel = Button(root, text='Cancel', command=cancel)  
+    submit.pack()
+    cancel.pack()
+    
+    # Closing the window executes cancel
+    root.protocol('WM_DELETE_WINDOW', cancel) 
+
+    # Place the window in approximately the center of the screen
+    root.eval('tk::PlaceWindow %s center' % root.winfo_pathname(root.winfo_id()))
+
+    # Run
+    root.mainloop()
+
+    return entries
+
