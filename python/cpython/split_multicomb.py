@@ -59,13 +59,11 @@ iexpno, oexpno, rmat, overwrite = dialog(
                    'Recombination Matrix',
                    'Overwrite'],
             types=['e', 'e', 'd', 'c'],
-            values=[curexpno, oexpno, ['Manual', 'Pulseprogam Info', 
-                                       'Hadamard 2',  'Hadamard 4',  
-                                       'Hadamard 8',  'Hadamard 16'], '',],
+            values=[curexpno, oexpno, ['Manual', 'Pulseprogam Info', 'Hadamard'], ''],
             comments=[])
 
 
-# recombination matrix
+# Generate a Recombination Matrix
 
 # Manual Entry for the Matrix
 if rmat == 'Manual':
@@ -74,11 +72,22 @@ if rmat == 'Manual':
     rmat = parse_matrix(rmat)
     rdim = rmat.shape[-1]
 
+
 # Standard Hadamard Matrix
-elif rmat.split()[0] == 'Hadamard':
+elif rmat == 'Hadamard':
+    
+    # get dimension of hadamard matrix from the user
+    rdim = dialog(header='Split Multicomb',
+                  info='Enter the dimension of the Hadamard Matrix (N x N)',
+                  labels=['Dimension'], 
+                  types=['e'], 
+                  values=['2'], 
+                  comments=[''])
+
+    # make a hadamard matrix of the appropriate dimension
     from scipy.linalg import hadamard
-    rdim = int(rmat.split()[1])
-    rmat = hadamard(rdim)
+    rmat = hadamard(int(rdim[0]))
+
 
 # Pulseprogram info
 elif rmat == 'Pulseprogram Info':
