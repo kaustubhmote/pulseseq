@@ -37,13 +37,20 @@ import numpy as np
 from base import dialog, text_entry
 
 
-def parse_matrix(rmat_string='', remove='[];,'):
+def parse_matrix(rmat_string='', remove='#[];,'):
     rmat = []
+    
+    rmat_string = rmat_string.split('\n')
+    rmat_string = [i for i in rmat_string if i != '']
+    
     for i in rmat_string:
         for j in remove:
             i = i.replace(j, ' ')
-        rmat.append(i)
-    rmat = np.array([np.fromstring(i, sep=' ', dtype='int32') for i in elrmat])
+        rmat.append(i) 
+
+    rmat = np.array([np.fromstring(i, sep=' ', dtype='int32') for i in rmat])
+
+    return rmat
 
 
 # default imports from xcpy
@@ -68,9 +75,10 @@ iexpno, oexpno, rmat, overwrite = dialog(
 # Manual Entry for the Matrix
 if rmat == 'Manual':
     rmat = text_entry()
-    print(type(rmat))
+    print(rmat)
     rmat = parse_matrix(rmat)
     rdim = rmat.shape[-1]
+    numexp = rmat.shape[0]
 
 
 # Standard Hadamard Matrix
@@ -151,9 +159,6 @@ for i in range(rdim):
 
 
 # combine data using recombination matrix
-
-np.save('/home/kaustubh/Desktop/rmat', rmat)
-np.save('/home/kaustubh/Desktop/od', outdata)
 
 recombined = rmat @ outdata
 recombined = np.array([i.reshape(data.shape[0]//rdim, data.shape[-1]) for i in recombined])
