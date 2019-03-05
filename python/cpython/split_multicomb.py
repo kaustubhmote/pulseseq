@@ -84,9 +84,10 @@ elif rmat == 'Hadamard':
                   values=['2'], 
                   comments=[''])
 
+    rdim = int(rdim[0])
     # make a hadamard matrix of the appropriate dimension
     from scipy.linalg import hadamard
-    rmat = hadamard(int(rdim[0]))
+    rmat = hadamard(rdim)
 
 
 # Pulseprogram info
@@ -105,64 +106,67 @@ elif rmat == 'Pulseprogram Info':
     rmat = parse_matrix(rmat)
     rdim = rmat.shape[-1]
 
-print(rmat)
 
-# # Check if an output directory exists if overwriting is not allowed
-# if 'selected' not in overwrite:
-#     overwrite = False
-#     for i in range(rdim):
-#         if os.path.isdir(os.path.join(curdir, str(int(oexpno)+i))):
-#             raise ValueError('Expno {} exists!'.format(oexpno))
-# else:
-#     overwrite = True
-
-
-# # read the data
-# dic, data = ng.bruker.read(os.path.join(curdir, iexpno), 
-#                            read_pulseprogram=False)
+# Check if an output directory exists if overwriting is not allowed
+if 'selected' not in overwrite:
+    overwrite = False
+    for i in range(rdim):
+        if os.path.isdir(os.path.join(curdir, str(int(oexpno)+i))):
+            raise ValueError('Expno {} exists!'.format(oexpno))
+else:
+    overwrite = True
 
 
-# # get the dimension of data
-# ndim = dic['acqus']['PARMODE'] + 1
+# read the data
+dic, data = ng.bruker.read(os.path.join(curdir, iexpno), 
+                           read_pulseprogram=False)
 
 
-# # make a list of possible acquNs files
-# acqus_files = ['acqu{}s'.format(i) for i in range(2, ndim+1)]
+# get the dimension of data
+ndim = dic['acqus']['PARMODE'] + 1
 
 
-# # make a 2D data
-# td = dic['acqus']['TD']
-# # inc = np.product(data.shape[:-1])
-# data = data.reshape(-1, td)
+# make a list of possible acquNs files
+acqus_files = ['acqu{}s'.format(i) for i in range(2, ndim+1)]
 
 
-# # check that data dimensions make sense for the given recombination matrix
-# if data.shape[0] % rdim != 0:
-#     print(f'Dimension of recombination matrix ({rdim}) incompatible with current data. Data will be truncated to the nearest possible increment.')
-
-#     nearest_allowed_inc = int(data.shape[0] // rdim * rdim)
-#     data = data[:nearest_allowed_inc]
+# make a 2D data
+td = dic['acqus']['TD']
+inc = np.product(data.shape[:-1])
+data = data.reshape(inc, -1)
 
 
-# # split data
-# outdata = np.empty((rdim, data.shape[0] // rdim * data.shape[-1]), dtype=data.dtype) 
-# for i in range(rdim):
-#     outdata[i] = data[i::rdim].reshape(-1)
+# check that data dimensions make sense for the given recombination matrix
+if data.shape[0] % rdim != 0:
+    print(f'''Shape of recombination matrix ({rmat.shape}) incompatible with current data. 
+    Data will be truncated to the nearest possible increment.''')
+    nearest_allowed_inc = int(data.shape[0] // rdim * rdim)
+    data = data[:nearest_allowed_inc]
 
 
-# # combine data using hadamard matrix
-# recombined = rmat @ outdata
-# recombined = np.array([i.reshape(data.shape[0]//rdim, data.shape[-1]) for i in recombined])
+# split data
+outdata = np.empty((rdim, data.shape[0] // rdim * data.shape[-1]), dtype=data.dtype) 
+for i in range(rdim):
+    outdata[i] = data[i::rdim].reshape(-1)
+
+
+# combine data using recombination matrix
+
+np.save('/home/kaustubh/Desktop/rmat', rmat)
+np.save('/home/kaustubh/Desktop/od', outdata)
+
+recombined = rmat @ outdata
+recombined = np.array([i.reshape(data.shape[0]//rdim, data.shape[-1]) for i in recombined])
  
 
-# # correct the number of scans and increments in acqus files
-# dic[acqus_files[-1]]['TD'] = data.shape[0] // rdim
-# dic['acqus']['NS'] =  dic['acqus']['NS'] * rdim
+# correct the number of scans and increments in acqus files
+dic[acqus_files[-1]]['TD'] = data.shape[0] // rdim
+dic['acqus']['NS'] =  dic['acqus']['NS'] * rdim
 
 
-# # write out multiple datasets
-# for i in range(rdim):
-#     odir = os.path.join(curdir, str(int(oexpno)+i)) 
-#     ng.bruker.write(odir, dic, recombined[i], write_prog=False, 
-#                     write_procs=True, pdata_folder=True,
-#                     overwrite=overwrite)
+# write out multiple datasets
+for i in range(rdim):
+    odir = os.path.join(curdir, str(int(oexpno)+i)) 
+    ng.bruker.write(odir, dic, recombined[i], write_prog=False, 
+                    write_procs=True, pdata_folder=True,
+                    overwrite=overwrite)
