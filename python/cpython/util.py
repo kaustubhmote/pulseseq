@@ -66,3 +66,16 @@ def split(dic, data, num_split, type='interleaved'):
 
 def rectify_increments(dic, data, dim, td):
     """ Changes the number of points in the """
+
+
+def protect_overwriting(dir_list, subdir_list=None):
+    """ check whether a directory/file exists """
+
+    for dirc in dir_list:
+        for f in subdir_list:
+            if os.path.exists(os.path.join(dirc, f)):
+               raise ValueError(f'Directory/File {dirc}/{file} exists') 
+
+    return 
+
+
