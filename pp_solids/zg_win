@@ -1,0 +1,188 @@
+;zg_win
+;$COMMENT=1D with windowed detection and homonuclear decoupling
+;$CLASS=Solids-1D
+;$DIM=1D
+;$TYPE=1H-Acquisition
+
+
+; Options
+; 1. -Dhetdec: X-heteronuclear decoupling during 1H acquisition
+
+
+; references:
+; [PMLG] Vinogradov E, Madhu PK, Vega S, Chemical Physics Letters 314 (5-6), 443-450	
+; [Supercycling] Leskes M, Madhu PK, Vega S, Chemical Physics Letters 447 (4-6), 370-374	
+; [Hetero+Hom decoupling] Mote KR, Madhu PK, Solid State Nuclear Magnetic Resonance 90, 7-12	
+
+
+; Suggestions, Quetsions?
+; kaustuberm [at] tifrh [dot] res [dot] in
+
+; Settings--------------------------------------------
+;zgoptns: -Dhetdec
+;aqmod: analog
+;TD: [to be set to ~count*4]
+;SW: [= cnst16], make sure TD~count*4
+;d1: recycle delay
+;p1: 1H initial 90 deg pulse @ pl1
+;plw1: 1H, 90 pulse @ length p1
+;spw1: homodec power level
+;l11: 16 [=anavpt] (16 is optimal in most cases)
+;d9: [= l11*0.1u]
+;p5: 1H, pmlg pulse length of each phase
+;cnst10: 10 for m5m, 6 for m3m
+;p10: [= cnst10*p5 ]
+;d8: time to trun on receiver (0.1u - 1.6u)
+;p9: Total window duration (3.0u - 4.6us)
+;spnam1: m3m, m5m, times, etc
+;count: [= aq / pmlg_cycle_time]
+;plw13: X, decoupling [optional, with zgoptns = -Dhetdec]
+;cpdprg3: X, decoupling (rcwapa or waltz16, at MAS > 60 kHz)
+;--------------------------------------------
+
+
+; # channels
+# define H f1
+# ifdef hetdec
+# define X f2
+# endif
+
+
+; # include files
+#include <Avancesolids.incl>
+#include <Delayssolids.incl>
+
+; # sampling delay
+  "d9 = 0.1u*(l11)"
+
+; # window 
+  define delay WINDOW
+  "WINDOW = p9"
+
+; # pmlg settings
+  "p10 = cnst10*p5"
+
+; # part of WINDOW other than sampling
+  define delay del
+  "del =  WINDOW - d9 - d8 - 0.1u"
+
+; # spectra width. manually set the sw to this number
+  "cnst16 = 1/(WINDOW + p10)"
+
+; # pmlg cycle time (supercycled pmlg)
+  define delay cycle
+  "cycle = 2/cnst16"
+
+; # to define acq time
+  define loopcounter count
+  "count = aq/cycle"
+
+; # transmitter blanking
+  "blktr2 = 0.7u"
+
+; # anavpt for analog mode sampling  
+  "anavpt = l11"
+
+; # inbuilt delays
+  "d58 = 1m"
+  "d59 = 100u" 
+  "d60 = 0.1u"
+  "d61 = 0.5u"
+  "d62 = 1.0u"
+  "d63 = 10u"
+
+
+; Preset
+Pre, ze	
+
+
+; Checks
+Check, d63
+
+/*
+if "TD + 128 > 4 * count" goto PassTD
+print "TD should be ~ 4 * count"
+goto HaltAcqu
+PassTD, d63
+
+
+if "aq < 50m" goto PassAq
+print "Acuisition time is > 50ms"
+goto HaltAcqu
+PassAq, d63
+*/
+
+; Pulse Program Starts
+Start, d60
+
+; recycle delay
+  d1 
+
+
+; reset settings and phases
+  d63 reset1:H 	
+  STARTADC				
+  RESETPHASE			
+  d63 rpp10				
+
+
+; initial power levels
+  d62 pl1:H 
+
+
+# ifdef hetdec
+; heteronuclear decoupling
+  d63 pl13:X
+  d60 cpds3:X
+# endif
+
+
+; first 90 at pl1
+  (p1 ph1):H 					
+
+
+; detect
+4 del 											
+  d8 RG_ON								
+  d9 sample								
+  (p10:sp1  ph10^):H			
+  del 
+  d8 RG_ON
+  d9 sample
+  (p10:sp1  ph10^):H
+  lo to 4 times count             
+
+
+# ifdef hetdec
+; turn off heteronuclear decoupling
+  d60 do:X
+# endif
+
+
+; loop for number of scans
+  d62 rcyc=Start								
+
+
+; write to file
+  d58 wr #0 
+
+
+; Settings Errors escape here
+HaltAcqu, d63
+
+
+; the end
+exit								
+
+
+; phase tables 
+;ns: 2, 4*N
+
+  ph1  = 0 2 1 3
+  ph30 = 0
+  ph31 = 0 2 1 3 
+
+  ph20 = 0 
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3  
