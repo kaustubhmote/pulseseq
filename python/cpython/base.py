@@ -151,7 +151,6 @@ def dialog(header='', info='', labels=[], types=[],
     return entries 
 
 
-
 def text_entry():
     """ Single Multiline Entry Textbox"""
 
@@ -165,7 +164,7 @@ def text_entry():
     # get values if Submit is clicked
     def getvals():
         global entries
-        rmat = mat.get('1.0', 'end-1c')
+        entries = mat.get('1.0', 'end-1c')
         root.destroy()
 
     # get no entries if cancel is clicked
@@ -188,6 +187,5 @@ def text_entry():
 
     # Run
     root.mainloop()
-
     return entries
 
