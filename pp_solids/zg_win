@@ -144,11 +144,11 @@ Start, d60
 ; detect
 4 del 											
   d8 RG_ON								
-  d9 sample								
+  sample								
   (p10:sp1  ph10^):H			
   del 
   d8 RG_ON
-  d9 sample
+  sample
   (p10:sp1  ph10^):H
   lo to 4 times count             
 
