@@ -99,18 +99,19 @@ Pre, ze
 ; Checks
 Check, d63
 
-/*
-if "TD + 128 > 4 * count" goto PassTD
-print "TD should be ~ 4 * count"
+# ifndef nocheck
+; Check that TD is set correctly
+if "TD + 128 < 4 * count" goto PassTD
+print "TD should be ~ 4 * count. Adjust by setting SW equal to cnst16"
 goto HaltAcqu
 PassTD, d63
 
-
+; Protection from long acquisition
 if "aq < 50m" goto PassAq
 print "Acuisition time is > 50ms"
 goto HaltAcqu
 PassAq, d63
-*/
+# endif
 
 ; Pulse Program Starts
 Start, d60
