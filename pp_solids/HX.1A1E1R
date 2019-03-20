@@ -59,6 +59,12 @@ Pre, ze
 
 Check, d63
 
+if "p15 < 11m" goto PassCP
+print "Check CP contact time"
+goto HaltAcqu
+PassCP, d63
+
+
 
 Start, d63
   d1 do:H
@@ -81,7 +87,7 @@ Start, d63
 
 ; # detect X with H-decoupling
   d60 pl12:H
-  go=2  ph31 cpds2:H finally do:H
+  go=Check  ph31 cpds2:H finally do:H
 
 
 ; # 2D statement
@@ -94,7 +100,7 @@ HaltAcqu, d63
 exit
 
 
-; #---phase table
+; # phase table
 ; min=2, full=4
   ph1= 1 3 
   ph2= 0 0 2 2 
