@@ -74,11 +74,15 @@ cpy_executable = cpython()
 
 # Folder of the TOPSPIN directory
 try:
-    # TOPSPIN > 3.1
-    toppath = sys.registry['XWINNMRHOME'] 
+    # TopSpin >= 3.6
+    toppath = sys.getBaseProperties()['XWINNMRHOME']
 except:
-    # TOPSPIN < 3.1
-    toppath = sys.getEnviron()['XWINNMRHOME'] 
+    try:
+        # TOPSPIN > 3.1 and < 3.5
+        toppath = sys.registry['XWINNMRHOME'] 
+    except:
+        # TOPSPIN < 3.1
+        toppath = sys.getEnviron()['XWINNMRHOME'] 
 
 # Folder for the cpython scripts
 cpyfolder = os.path.join(toppath, 'exp', 'stan', 'nmr', 'py', 'user', 'cpython')
