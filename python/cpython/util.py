@@ -45,7 +45,7 @@ def fid_per_row(dic, data, direct_points=None, truncate_fids=None):
     one fid per row
     """
 
-    if direct_points == None:
+    if direct_points is None:
         try:
             direct_points = dic['acqus']['TD']
         except KeyError:
@@ -60,8 +60,17 @@ def fid_per_row(dic, data, direct_points=None, truncate_fids=None):
     return data.reshape(-1, direct_points)
 
 
-def split(dic, data, num_split, type='interleaved'):
+def split(dic, data, num_split, split_type='interleaved'):
     """ Splits data """
+
+    if split_type == "interleaved":
+        for i in range(split):
+            outdata[i] = data[i::split]
+    
+    elif split_type == "sequential":
+        td_one_exp = dic[acqus_files[-1]]["TD"] // split
+        for i in range(split):
+            outdata[i] = data[i * td_one_exp : (i + 1) * td_one_exp]
 
 
 def rectify_increments(dic, data, dim, td):
