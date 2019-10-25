@@ -1,6 +1,7 @@
 '''
 split_multicomb.py: combines datasets based on given matrices 
  
+
 What it does
 -----------
 Take is a series of FIDs and splits them  in an interleaved manner into 'N' 
@@ -14,11 +15,21 @@ will be first split into A, B, C, D and recombined as:
 All for experiments will be returned in conseceutive experiments startig with
 the output experiments number that is given
  
+
 Usage
 -----
 User is propmted for:
 1. EXPNO to split and combine. ,
 2. Dimension of the hadamard matrix
+3. There is an option to manually put in an arbitrary matrix. 
+    Follwing is an example of an acceptable matrix:
+    [1, 1, 1,   1]
+    [1, 1, -1, -1]
+    [1, -1, -1, 1]
+    [1, -1, 1, -1]
+   This will take consequitive FIDs and split them in the same
+   manner as is shown in the "What it does" example above
+
 
 Author
 ------
@@ -170,7 +181,7 @@ dic['acqus']['NS'] =  dic['acqus']['NS'] * rdim
 
 
 # write out multiple datasets
-for i in range(rdim):
+for i in range(numexp):
     odir = os.path.join(curdir, str(int(oexpno)+i)) 
     ng.bruker.write(odir, dic, recombined[i], write_prog=False, 
                     write_procs=True, pdata_folder=True,
