@@ -1,0 +1,237 @@
+;hXH1D.1aq
+;$COMMENT=CP based 1H detected  heteronuclear correlation 
+;$CLASS=Solids
+;$DIM=1D
+;$TYPE=CP
+;$SUBTYPE=1H-Acquisition
+
+; Note:  mc macro for indirect sampling currently set for Topspin 3.x
+; Change if you are using Topspin 2.x
+
+; Questions, Suggestions?
+; kaustuberm [at] tifrh [dot] res [dot] in
+
+; #---ZGOPTNS
+; 1. -Dwacq: Windowed 1H acquisiton (Needs other settings as well: see below)
+; 2. -Dhetdec: X-heteronuclear decoupling during 1H acquisition
+;----------------------------------------------------------------------------
+
+; #---pulses
+;p1: 1H initial 90 deg pulse @ pl1
+;p15: initial cp contact time
+;p2:	90 deg pulse on X @ pl2
+;p17: selective (short) CP from X to 1H	
+; --------------------------------------
+ 
+; #---power
+;pl1: 1H, 90 pulse @ length p1
+;pl2: X, 90 pulse @ length p2
+;pl12: H, decoupling
+;pl7: 1H, water suppression, usually 5-15 kHz
+;pl8: X, decoupling
+;sp0: 1H, initial CP to X, @ p15 (ramp)
+;pl16:	X, initial CP from 1H, @ p15
+;sp3: 1H, selective (short) CP from X to 1H @ p17 (ramp)
+;pl17: X, selective (short) CP from X to 1H @ p17 
+;------------------------------------------------------
+
+; #---delays
+;d1: recycle delay
+;d7: water suppression time
+;d0: indirect evolution
+;------------------------------
+
+; #---shapes
+;spnam0: linear ramp (eg ramp70100.1000)
+;spnam4: linear ramp (eg ramp70100.1000)
+;-----------------------------------------
+
+; #---decoupling
+;cpdprg7: H, water suppression (cw, missisipi, etc)
+;cpdprg8: X, decoupling (waltz, garp, pi, etc)
+;cpdprg2: H, decoupling (rCW-ApA, sw-TPPM)
+;----------------------------------------------------
+
+; #---loops and constants
+;l11: 16
+;cnst31: MAS freequency
+;--------------------------
+
+; #---windowed acquisition settings
+;aqmod: analog
+;l11: =anavpt =16 (this is optimal in most cases)
+;d9: =1.6us, defined by l11 
+;p5: 1H, pmlg pulse length of each phase
+;p10: =10*p5 for m5m, 6*p5 for m3m
+;d8: time to trun on receiver (0.1u - 1.6u)
+;p9: Total window duration (3.0u-4.6us)
+;count: loops for each supercycled pmlg, defined by aq and other pmlg settings
+;Set SW = cnst16, make sure TD~count*4
+;--------------------------------------------
+
+; #---channels
+# define H f1
+# define X f2
+
+; #---include files
+#include <Avancesolids.incl>
+
+# ifdef wacq
+; #----for windowed 1H acquisition
+#include <Delayssolids.incl>
+; #----sampling delays
+ "d9=0.1u*(l11)"
+; #---part of the window
+ define delay WINDOW
+ "WINDOW=p9"
+; #---pmlg pulses
+ "p10=10*p5"
+; #---part of WINDOW other than sampling
+  define delay del
+  "del =  WINDOW - d9 - d8 - 0.1u"
+; #---pmlg cycle time (supercycled pmlg)
+  define delay cycle
+  "cnst16=1/(WINDOW + p10)"
+; #---spectra width. manually set the sw to this number
+  "cycle=2/cnst16"
+; #---to define acq time
+  define loopcounter count
+  "count=aq/cycle"
+; #---transmitter blanking
+  "blktr2 = 0.7u"
+; #---anavpt for analog mode sampling  
+  "anavpt=l11"
+# endif
+
+; #---inbuilt delays
+  "d60 = 0.1u"
+  "d61 = 0.5u"
+  "d62 = 1.0u"
+  "d63 = 10u"
+
+  define delay acquisition
+  "acquisition = aq"
+
+; #---indirect dimension settings
+  "in0=inf1"
+  define loopcounter ni
+  "ni = td1/2"
+  define delay t1evolution
+  "t1evolution = ni*inf1"
+
+; #---for rCW-ApA heteronuclear decoupling on 1H
+  "p31 = (0.98/cnst31)*1s - p32/2"
+;--------------------------------------------------
+
+; #---pulse seq starts
+1 ze	
+2 d60 do:X
+
+; #---recycle delay
+  d1 
+
+; #---check settings
+# ifdef wacq 
+  if "TD+128 < count*4" goto ErrTD
+# endif
+  if "acquisition > 50m" goto ErrAq
+  if "(p15 + p17) > 15m" goto ErrCP
+  if "(acquisition + p15 + d7 + t1evolution + p17 + p1 + 2*p2) > 0.1*d1" goto ErrDuty	
+
+# ifdef wacq
+  10u reset1:H 	
+  STARTADC				
+  RESETPHASE			
+  1u rpp10				
+# endif
+
+; #---first 90 at pl1
+  d62 pl1:H pl16:X		
+  (p1 ph1):H 					
+
+; #---cp
+	(p15:sp0 ph20):H (p15 ph16):X
+
+; #---indirect evolution
+  d61 pl12:H
+  d60 cpds2:H
+  d0
+  (p2 pl2 ph21):X
+  d60 do:H
+
+; #---Water Suppression
+  d61 pl7:H			
+  d60 cpds7:H		
+  d7								
+  d60 do:H
+
+; #---reverse cp
+  (p2 ph23):X
+	(p17:sp4 ph18):H (p17 pl17 ph20):X			
+
+; #---detect
+# ifdef wacq
+4 del 											
+	d8 RG_ON								
+  d9 sample								
+  (p10:sp1  ph10^):H			
+  del 
+	d8 RG_ON
+  d9 sample
+  (p10:sp1  ph10^):H
+  lo to 4 times count             
+  d62 rcyc=2 								
+# else
+#   ifdef hetdec
+    d61 pl8:X
+    d60 cpds8:X
+    go=2 ph31
+    d60 do:X
+#   else
+    go=2 ph31
+#   endif
+# endif
+
+; #---mc macro for Topspin 2.x or higher
+; 1m mc #0 to 2 F1PH(ip16, id0)
+
+; #---mc macro for Topspin 3.x or higher
+  1m mc #0 to 2 F1PH(calph(ph16, +90), caldel(d0, +in0)) 
+  goto HaltAcqu
+
+; #---Error Statements
+ErrTD, 1m
+  print "TD << count * 4. SWH should be ~CNST16 for -Dwacq"
+  goto HaltAcqu
+
+ErrAq, 1m
+  print "Acquisition is too long. Please check"
+  goto HaltAcqu
+
+ErrCP, 1m
+ print "CP time is too long. Please check."
+ goto HaltAcqu
+
+ErrDuty, 1m
+ print "Duty Cycle > 10%. Please check or edit the pulse program"
+ goto HaltAcqu
+;-----------------------------------------------------------------
+
+HaltAcqu, 1m
+exit								
+
+; #---phase tables 
+; #---min=2, full=8
+  ph1  = 1 3
+  ph16 = 0 0 2 2   			 
+  ph18 = 0 0 0 0 2 2 2 2 
+  ph19 = 0
+  ph10 = 0 2 
+  ph30 = 0
+  ph31 = 0 2 2 0 2 0 0 2
+
+  ph20 = 0 
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3  
+; ----------------------

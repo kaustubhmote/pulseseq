@@ -1,0 +1,255 @@
+; Simultaneous intra- and inter-residue linking for assignments
+
+; tested on: Bruker Avance III Console using TopSpin 3.5 pl7
+
+; reference
+; Sharma et al. J Biomol NMR (2020) doi: 10.1007/s10858-019-00292-y
+
+
+; issues, bugs
+; krmote @ tifrh.res.in
+
+; notes
+; If you keep ns=2, the "actual" number of scans will be 32 in this version
+; If you keep td1=32, the "actual" number of td1 will be 2
+; td2 will remain untouched.
+; So, keep td1 = 16 times the td1 you want, and keep ns = 1/16 the number you want
+; If you need less than 32 scans, please see the reference above on how to change the pulse 
+; program to achieve this.
+
+
+; parameters
+;p1: H 90
+;pl1: H, 90
+;p15: initial simcp contact time
+;spw0: H simcp 
+;pl15: C, simcp
+;pl16: N, simcp
+;pl12: H, decoupling
+;cnst31: MAS, Hz
+;l12: N for low power rcwapa
+;cpdprg2: H decoupling
+;p2: C, 90
+;pl2: C, 90
+;p3: N, 90
+;pl3: N, 90
+;d0: indirect increment 1
+;cnst17: Hz offset for dream (caco)
+;p16: dream caco
+;cnst18: Hz offset for dream (coca)
+;p17: dream coca
+;spw1: dream caco
+;cnst19: Co
+;p25: nco transfer
+;spw2: Co, nco transfer
+;plw25: N, nco transfer
+;p27: nca transfer
+;spw3: C, nca
+;plw26: N, Ca
+;d10: 2nd indirect evolution
+;pl7: H water suppression
+;d7: water suppression
+;cpdprg7: water suppression
+;p20: H, N rev cp 
+;p19: C rev cp
+;pl13: C dec
+;pl14: N, dec
+;cpdprg4: C, dec
+;cpdprg5: N, dec
+;zgoptns: -Drcwlp, -Doned, -Dthreed
+;ns: min=2, 2 scans will equal 2*16=32 scans
+
+# define H f1
+# define C f2
+# define N f3
+
+; #---default delays
+  "d58 = 1m"
+  "d59 = 200u"
+  "d60 = 0.1u"
+  "d61 = 1.0u"
+  "d62 = 2.0u"
+  "d63 = 10.0u"
+  "acqt0 = d60"
+
+; #---internal calculated delays
+  "p24 = p25 - 2*p3"
+  "p26 = p27 - 2*p3"
+
+# ifdef rcwlp
+;l12: N (14/16/18)*taur (set approx vr/vc*4)
+;cnst31: MAS frequency (use this for > 40-50 kHz)
+;p32: pulse for low power rCW-ApA decoupling (set internally) 
+;p31: pulse for low power rCW-ApA decoupling (set internally) 
+;taur: =1/cnst31, rotor period (set internally)
+  define delay taur
+  "taur = 1s/cnst31"
+  "p31 = 0.2125 * l12 * taur"
+  "p32 = 0.075 * l12 * taur"
+# endif
+
+# ifndef oned
+; #---indirect increment
+  define loopcounter ni
+  "ni = td1/32"
+  "in0 = inf1"
+  "d0 = 0.1u"
+# endif
+# ifdef threed
+  define loopcounter ni2
+  "ni2 = td2/2"
+  "in10 = inf2"
+  "d10 = 0.1u"
+# endif
+
+
+; ###########
+; ## START ##
+; ###########
+
+
+1 ze
+
+; #---recycle delay
+2 d1
+  d62 fq=0:C 
+  d62 
+
+; #---initial power levels
+  d63 pl1:H pl15:C pl16:N
+
+; #---1st 90
+  (p1 ph1):H
+
+; #---simcp to N and C
+  (p15:sp0 ph20):H (p15 ph15):C (p15 ph16):N
+
+# ifndef oned 
+; #---t1 evol on C, N
+  d60 pl12:H pl3:N
+  d0 cpds2:H
+  d60 do:H
+# endif
+
+; #----dream Ca-->Co
+  d61 fq=cnst17:C
+  (p16:sp1 ph27^):C (p3 ph21):N
+
+; #---NCo specific cp
+  d61 fq=cnst19:C
+  (p25:sp2 ph5):C (p3 pl3 ph23 p24 pl25 ph6 p3 pl3 ph21):N
+
+; #---dream Co-->Ca
+  d61 fq=cnst18:C
+  (p17:sp5 ph28^):C 
+
+; #---NCa specific cp
+  d61 fq=cnst16:C
+  (p27:sp3 ph7):C (p3 pl3 ph23 p26 pl26 ph8):N
+
+# ifdef threed
+; #---t2 evol
+  d60 pl12:H pl2:C pl3:N
+  d10 cpds2:H
+  d60 do:H
+# endif
+
+; #---water suppression
+  d60 pl2:C pl3:N 
+  (p2 ph18):C (p3 ph19):N
+  d61 pl7:H
+  d61 fq=cnst7:H
+  d7 cpds7:H
+  d61 fq=0:H
+  d61 do:H
+
+; #---CP back
+  (ralign 
+    (p20:sp4 ph20):H
+    (p2 pl2 ph11 p19 pl19 ph10):C 
+    (p3 pl3 ph12 p20 pl20 ph9):N  
+  )
+
+; #---acquire
+  d60 pl13:C pl14:N
+  gosc ph31 cpds3:C cpds4:N 
+  d60 do:C do:N
+  lo to 2 times ns
+
+
+; #---write
+  1m wr #0 if #0 zd
+
+; #---multiplexing
+  d62 ip6*2
+  lo to 2 times 2
+
+  d62 ip7*2
+  lo to 2 times 2
+
+  d62 ip9*2 
+  lo to 2 times 2
+
+  d62 ip10*2
+  lo to 2 times 2
+
+
+# ifndef oned
+; #---t1 increment quad
+  d62 ip15
+  d62 ip16
+  lo to 2 times 2
+
+; #---t1 increment inc
+  id0
+  lo to 2 times ni
+# endif
+
+# ifdef threed
+; #---t2 increment quad
+  rd0
+  d62 rpp15 rpp16
+  d62 ip18
+  d62 ip19
+  lo to 2 times 2 
+
+; #---t2 increment inc
+  id10
+  lo to 2 times ni2 
+# endif
+
+
+HaltAcqu, d59
+
+exit
+  
+; #---phase tables
+; minimum phase cycle is 2 steps
+; this is in addition to the multiplex phase cycle
+; note that 2 scans will be equal to 2*16 = 32 scans 
+; in this implementation
+  ph1 = 1 3
+  ph15 = {0}*8 {2}*8
+  ph16 = {0}*8 {2}*8
+
+  ph5 = 0
+  ph6 = 0 
+  ph7 = 0 
+  ph8 = 0
+  ph9 = 0
+  ph10 = 0
+   
+  ph27 = 0 0 2 2
+  ph28 = 0 0 2 2
+  ph18 = 3 3 1 1  
+  ph19 = 1 1 3 3 
+  ph11 = 1 1 1 1 3 3 3 3
+  ph12 = 1 1 1 1 3 3 3 3
+
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3
+
+  ph31 = 0 2 2 0 2 0 0 2 
+         2 0 0 2 0 2 2 0 
