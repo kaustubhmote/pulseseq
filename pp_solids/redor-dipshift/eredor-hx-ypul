@@ -1,0 +1,295 @@
+; #---info
+; eredor-hx-ypul
+; CP to X, REDOR pulses on Y; detect on X, with scaling factor for H-X coupling
+; example: CN redor after CP to 13C from 1H
+; found bugs? contact krmote @ tifrh.res.in
+
+
+; #---reference
+; Jain et al. J. Chem. Phys. (2019), 150, 13, 134201 
+; doi: 10.1063/1.5088100 
+
+
+; #---options
+;zgoptns: -Dset_l0, -Drcwhp, -Drcwlp
+; -Dset_l0: use if a single S and S0 point is to be acquired
+;     is useful when long 1Ds are to be acquired at
+;     a single dedor dephasing time
+; -Drcwhp: higher power rcwapa decoupling setup
+; -Drcwlp: low power rcwapa decoupling setup
+
+
+; #---instructions
+; - Set the pulses/power/delays (see parameter section)
+; - final redor dephasing time is given by d10
+; - scaling factor set by cnst30
+; - set NBL=2. S and S0 will be then recorded alternately 
+;   (one scan of S, one scan of S0) and written out as consecutive FIDs
+; - set l10 so that d27 is the smallest possible positive number
+
+
+; #---channels
+# define H f2
+# define X f1
+# define Y f3
+
+
+; #---default delays
+  "d58 = 1m"
+  "d59 = 0.2m"
+  "d60 = 0.1u"
+  "d61 = 0.2u"
+  "d62 = 2u"
+  "d63 = 10u"
+  "acqt0 = 0u"
+
+
+; #---parameters (to be set)
+;cnst31: MAS freq in Hz
+;cnst30: (for scaling) 0.25->1.0 0.125->0.71 0.085->0.51 0.05->0.31 0.02->0.125
+;p1: 1H 90 pulse
+;plw1: 1H 90 pulse power level
+;p15: CP contact time
+;plw15: CP power level on X channel
+;spw0: CP power level on 1H
+;spnam0: CP shape on 1H (ramp)
+;plw3: DEDOR recoupling pulses on Y channel
+;p11: DEDOR recoupling 180 pulses on Y channel 
+;pl5: central pi pulse on X - hard pi
+;spw5: optional, central pi on X - shaped/soft pi
+;spnam5: optional, rsnob, gaussian etc
+;p7: Central 180 pulse on (Y) channel
+;pl7: central pi pulse on X - hard pi
+;spw7: optional, central pi on X - shaped/soft pi
+;spnam7: optional, rsnob, gaussian etc
+;td1: number of points in second dimension, S + S0  
+;l0: increment from 0 to td1/2  
+;l1: number of times to increment the DEDOR loop for each increment
+;l10: number of central rotor periods for freq selection 
+;cpdprg3: CW 
+;cpdprg2: decoupling during acquisition
+;plw13: CW 1H decoupling during REDOR
+;plw12: 1H decoupling during detection
+;NBL: 2 when both S and S0 are acquired
+
+
+; #---parameters (internal)
+;taur: rotor period
+;d10: =2*taur*td1/2 (max recoupling duration for DEDOR)
+;d58: =1m, write-to-disk, detect channel switch
+;d59: =0.2m, gradient recovery 
+;d60: =0.1u, pwl setting, decoupling ON/OFF 
+;d61: =0.2u, phase swicth, if important 
+;d62: =2u, frq swicth 
+;d63: =10u, buffer switch 
+
+
+; #---rotor period
+  define delay taur
+  "taur = 1s/cnst31"
+
+
+; #---redor delays
+  "p6 = max(p5, p7)"
+  "d27 = l10*taur - (p6/2)"
+  "d50 = (0.5*taur) - p11"
+  "d49 = 0.75*taur + cnst30*taur - 0.5*d50"
+  "d51 = taur - d49"
+
+; #---e-erdor delays
+  define delay d49_first
+  "d49_first = d49 - 2*d60"
+  define delay d49_final
+  "d49_final = d49 - 3*d60 - de"
+
+
+; #---increments
+  define loopcounter ni
+  "ni = td1/2"
+
+
+; #---max recoupling durations
+# ifdef set_l0
+  "d10 = 2 * taur * l0"
+# else
+  "l0 = 0"
+  "d10 = 2 * taur * l1 * ni"
+# endif
+
+
+; #---decoupling
+# ifdef rcwhp
+;p32: 180 deg pulse for rcw (high power) decoupling  
+;p31: CW pulse for rCW-ApA decoupling (set internally)
+  "p31 = (0.98*taur) - (0.5*p32)" 
+# endif
+# ifdef rcwlp
+;l12: N =14/16/18
+;p32: pulse for low power rCW-ApA decoupling (set internally) 
+;p31: pulse for low power rCW-ApA decoupling (set internally) 
+  "p31 = 0.2125 * l12 * taur"
+  "p32 = 0.075 * l12 * taur"
+# endif
+
+
+; ########################
+; ####### S starts #######
+; ########################
+
+1 ze	
+  taur
+
+; TODO: pulses and power checks: put here 
+
+2 d63 st0
+  d1
+  d10
+  rpp8
+ 
+; #---initial power levels
+  d63 pl1:H pl15:X pl3:Y
+
+
+; #---1H 90 pulse
+  (p1 ph1):H
+
+
+; #---CP
+  (p15:sp0 ph20):H (p15 ph15):X 
+
+
+; #---REDOR Block A starts
+  d60 pl13:H
+  d60 cpds3:H
+  d49_first
+3 d50
+  (p11 ph8^):Y
+  d50
+  (p11 ph8^):Y  
+  lo to 3 times l0
+  d51
+  
+
+; #---Central PI Pulses on both channels
+  d27 pl5:X pl7:Y 
+  (center (p5:sp5 ph5):X (p7:sp7 ph8^):Y)
+  d27 pl3:Y
+  
+
+; #---DEDOR Block B starts
+  d51
+4 (p11 ph8^):Y
+  d50
+  (p11 ph8^):Y
+  d50
+  lo to 4 times l0
+  d49_final 
+  d60 do:H
+
+
+; #---decoupling power
+  d60 pl12:H
+
+
+; #---detect S
+  d60 cpds2:f2
+  goscnp ph31 finally do:H
+
+
+; ########################
+; ###### S0 starts #######
+; ########################
+
+; #---switch buffer
+5 d63 st
+
+; #---recycle delay
+  d1
+  d10
+  rpp8
+
+ 
+; #---initial power levels
+  d63 pl1:H pl15:X pl3:Y
+
+
+; #---1H 90 pulse
+  (p1 ph1):H
+
+
+; #---CP
+  (p15:sp0 ph20):H (p15 ph15):X 
+
+  d60 pl13:H
+  d60 cpds3:H
+
+
+; #---Dummy REDOR Block A (echo)
+  d49_first
+6 taur
+  lo to 6 times l0
+  d51
+
+
+; #---Central pi pulses only on X channel
+  d27 pl5:X pl7:Y 
+  (center (p5:sp5 ph5):X)
+  d27 pl3:Y
+  
+
+; #---Dummy REDOR Block B (echo)
+  d51
+7 taur
+  lo to 7 times l0
+  d49_final 
+  d60 do:H
+
+
+; #----decoupling power level
+  d60 pl12:H
+
+
+; #---detect
+  d60 cpds2:f2
+  go=2 ph31 finally do:H
+
+
+; #--- write and shift buffer
+  d58 wr #0 if #0 zd
+
+
+; #---increment
+8 iu0
+  lo to 8 times l1
+  lo to 2 times ni
+
+
+; #---stop
+HaltAcqu, 1m
+  exit
+
+
+; #---phase tables
+;ns: 32*n (min = 32 scans)
+; If you require less scans, remove phase-cycles on ph15 and ph1
+; and then adjust the receiver accordingly
+   ph1 = 1 3
+  ph15 = 0 0 1 1 2 2 3 3
+  ph20 = 0
+   ph5 = 0 0 0 0 0 0 0 0
+         1 1 1 1 1 1 1 1
+         2 2 2 2 2 2 2 2
+         3 3 3 3 3 3 3 3
+   ph6 = 0
+   ph8 = 0 1 0 1 1 0 1 0
+  ph10 = 0
+  ph31 = 0 2 3 1 2 0 1 3
+         2 0 1 3 0 2 3 1
+               
+
+; #---for bruker topspin
+;$CLASS=solids
+;$DIM=PSEUDO-2D
+;$TYPE=Heteronuclear Recoupling
+;$SUBTYPE=REDOR
+;$COMMENT=e-REDOR with arbitrary scaling factor
