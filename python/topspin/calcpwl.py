@@ -1,5 +1,35 @@
+"""
+calcpwl.py
+
+Calculates power level in watts required for a RF or
+a pulse length, given a reference power level
+and a reference RF or pulse length. 
+
+
+Bugs and suggestions
+--------------------
+kaustuberm@tifrh.res.in
+
+"""
+from sys import argv
+
+
+def parse_args(args):
+    """
+    Parse arguments and return a dictionary
+    containing necessary functions
+
+    """
+    if len(args) == 1:
+        return {}
+
+    elif  
+
 
 def sanitize(value):
+    """
+
+    """
     try:
         value = float(value)
     except:
