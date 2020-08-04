@@ -19,17 +19,17 @@ curprocno = cd[2]
 
 # Parse argument to see where to go
 if len(argv) == 1:
-    argv.append('e')
-    
-if argv[1] == 'd':
+    argv.append("e")
+
+if argv[1] == "d":
     dir = curdir
 
-elif argv[1] == 'e':
+elif argv[1] == "e":
     dir = os.path.join(curdir, curexpno)
-    
-elif argv[1] == 'p':
-	  dir = os.path.join(curdir, curexpno, 'pdata', curprocno)
-	  
+
+elif argv[1] == "p":
+    dir = os.path.join(curdir, curexpno, "pdata", curprocno)
+
 
 # open a terminal to the required working directory
 os.system("gnome-terminal --working-directory={}".format(dir))

@@ -5,6 +5,31 @@ Estimate Temparature from water peak
 import sys
 
 
+def main():
+
+    value = sys.argv[1]
+    units = value[-1]
+
+    if units.lower() in ("k", "c"):
+        temperature = parse(value)
+        out = ppm_from_temp(temperature)
+        msg = "At {:.2f} Celcius, the chemical shift of water will be {:.2f} ppm".format(
+            temperature, out
+        )
+
+    elif units.lower() == "p":
+        delta = parse(value)
+        out = temp_from_ppm(delta)
+        msg = "When water is at {:.2f} ppm, the sample temperature is estimated to be {:.2f} Celcius".format(
+            delta, out
+        )
+
+    try:
+        MSG(msg)
+    except:
+        print(msg)
+
+
 def temp_from_ppm(delta):
     """
     Calculates temperature from given chemical shift
@@ -56,32 +81,14 @@ def parse(input_string):
     units = input_string[-1].lower()
 
     if units == "k":
-      value = float(input_string[:-1]) - 273.15
+        value = float(input_string[:-1]) - 273.15
     elif units == "c":
-      value = float(input_string[:-1])
+        value = float(input_string[:-1])
     elif units == "p":
-      value = float(input_string[:-1])
+        value = float(input_string[:-1])
 
     return value
 
 
 if __name__ == "__main__":
-
-    value = sys.argv[1]
-    units = value[-1]
-    
-    if units.lower() in ("k", "c"):
-        temperature = parse(value)
-        out = ppm_from_temp(temperature)
-        msg = 'At {:.2f} Celcius, the chemical shift of water will be {:.2f} ppm'.format(temperature, out)
-
-    elif units.lower() == "p":
-        delta = parse(value)
-        out = temp_from_ppm(delta)
-        msg = 'When water is at {:.2f} ppm, the sample temperature is estimated to be {:.2f} Celcius'.format(delta, out)
-
-    try:
-        MSG(msg)
-    except:
-        print(msg)
-
+    main()
