@@ -86,7 +86,6 @@ iexpno, oexpno, rmat, overwrite = dialog(
 # Manual Entry for the Matrix
 if rmat == 'Manual':
     rmat = text_entry()
-    print(rmat)
     rmat = parse_matrix(rmat)
     rdim = rmat.shape[-1]
     numexp = rmat.shape[0]
