@@ -24,7 +24,7 @@ Kaustubh R. Mote
  
 Bugs and suggestions
 --------------------
-kaustuberm @ tifrh.res.in
+krmote @ tifrh.res.in
  
 """
 

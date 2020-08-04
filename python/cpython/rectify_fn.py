@@ -8,7 +8,7 @@ rectify_f1.py: correct the f1 dimension spectral width and frequency
  
  Bugs and suggestions
  --------------------
- kaustuberm @ tifrh.res.in
+ krmote @ tifrh.res.in
 """
 
 import os

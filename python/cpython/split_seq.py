@@ -25,7 +25,7 @@ split_seq.py: Splits a ser file into 'n' sequentially
  
  Bugs and suggestions
  --------------------
- kaustuberm @ tifrh.res.in
+ krmote @ tifrh.res.in
  
 """
 

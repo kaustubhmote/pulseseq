@@ -25,7 +25,7 @@ split_il.py: Splits a ser file with 'n' ilterleaved datasets
  
  Bugs and suggestions
  --------------------
- kaustuberm @ tifrh.res.in
+ krmote @ tifrh.res.in
  
 """
 

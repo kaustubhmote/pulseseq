@@ -9,7 +9,7 @@ Kaustubh R. Mote
 
 Bugs/Suggestions
 ----------------
-kaustuberm@tifrh.res.in
+krmote@tifrh.res.in
 
 """
 
