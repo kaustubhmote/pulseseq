@@ -14,7 +14,7 @@ def dimension(dic=None, data=None):
         raise ValueError("Either data or dictionary must be supplied")
 
     elif dic is None:
-            ndim = len(data.shape)
+        ndim = len(data.shape)
 
     elif data is None:
         if "acqus" in dic.keys():
@@ -55,14 +55,16 @@ def verify(dic, data, dtype="raw"):
     acqus_files = acqus_flist(dic, data)
     points = [dic[f]["TD"] for f in acqus_files]
 
-    expected_points = np.product(points) 
+    expected_points = np.product(points)
     actual_points = np.product(data.shape)
 
     if actual_points == expected_points:
         verified = True
     else:
-        print(f"Actual Points {actual_points} do not match expected number "\
-               "of points ({expected_points})")
+        print(
+            f"Actual Points {actual_points} do not match expected number "
+            "of points ({expected_points})"
+        )
 
     return verified
 
@@ -106,11 +108,11 @@ def split(dic, data, nsplits, stype="interleaved", td_per_split=None):
             nsplits = int(insplits)
         except Exception:
             raise ValueError("nsplits must be integer")
-        
+
     if stype == "interleaved":
         rem = data.shape[0] % nsplits
         if rem != 0:
-            data = data[:-rem] 
+            data = data[:-rem]
 
     if stype == "sequential":
         if td_per_split is not None:
@@ -195,7 +197,7 @@ def split_sequential(data, nsplits, td_per_split=None):
         raise ValueError("Needs 2D dataset. Must reshape before use")
 
     if td_per_split is None:
-        res = data.shape[0] % nsplits  
+        res = data.shape[0] % nsplits
         if res == 0:
             l = data.shape[0] // nsplits
         else:
@@ -205,7 +207,7 @@ def split_sequential(data, nsplits, td_per_split=None):
     else:
         l = td_per_split
 
-    split_data = [data[i*l : (i+1)*l] for i in range(nsplits)]
+    split_data = [data[i * l : (i + 1) * l] for i in range(nsplits)]
 
     return split_data
 

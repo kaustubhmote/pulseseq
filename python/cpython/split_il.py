@@ -1,4 +1,4 @@
-'''
+"""
 split_il.py: Splits a ser file with 'n' ilterleaved datasets
             into individual datasets 
  
@@ -27,7 +27,7 @@ split_il.py: Splits a ser file with 'n' ilterleaved datasets
  --------------------
  kaustuberm @ tifrh.res.in
  
-'''
+"""
 
 import os
 import nmrglue as ng
@@ -38,17 +38,20 @@ from base import dialog
 name, curdir, curexpno, curprocno = argv
 
 # Get output directory from user
-oexpno = curexpno + '00'
+oexpno = curexpno + "00"
 iexpno, oexpno, split, overwrite = dialog(
-                  header='Split Interleaved',
-                  info='Split an interleaved dataset',
-                  labels=['Dataset to split (EXPNO)',
-                          'EXPNO of 1st split dataset',
-                          'Number of experiments to split into',
-                          'Overwrite'],
-                  types=['e', 'e', 'e', 'c'],
-                  values=[curexpno, oexpno, 2, ''],
-                  comments=['', '', '', ''])
+    header="Split Interleaved",
+    info="Split an interleaved dataset",
+    labels=[
+        "Dataset to split (EXPNO)",
+        "EXPNO of 1st split dataset",
+        "Number of experiments to split into",
+        "Overwrite",
+    ],
+    types=["e", "e", "e", "c"],
+    values=[curexpno, oexpno, 2, ""],
+    comments=["", "", "", ""],
+)
 
 # Decipher variables
 indir = os.path.join(curdir, iexpno)
@@ -56,11 +59,11 @@ outdir = os.path.join(curdir, oexpno)
 split = int(split)
 
 # Check if an output directory exists if overwriting is not allowed
-if 'selected' not in overwrite:
+if "selected" not in overwrite:
     overwrite = False
     for i in range(split):
-        if os.path.isdir(os.path.join(curdir, str(int(oexpno)+i))):
-            raise ValueError('Expno {} exists!'.format(str(int(oexpno)+i)))
+        if os.path.isdir(os.path.join(curdir, str(int(oexpno) + i))):
+            raise ValueError("Expno {} exists!".format(str(int(oexpno) + i)))
 else:
     overwrite = True
 
@@ -69,27 +72,27 @@ else:
 dic, data = ng.bruker.read(indir)
 
 # Determine the dimensionality and the acqus files
-ndim = dic['acqus']['PARMODE'] + 1
-acqus_files = ['acqu{}s'.format(i) for i in range(2, ndim+1)]
+ndim = dic["acqus"]["PARMODE"] + 1
+acqus_files = ["acqu{}s".format(i) for i in range(2, ndim + 1)]
 
-# Calculate the number of indirect increments 
+# Calculate the number of indirect increments
 # and reshape to have 1 FID per row
-inc = np.product([dic[f]['TD'] for f in acqus_files])
+inc = np.product([dic[f]["TD"] for f in acqus_files])
 data = data.reshape(inc, -1)
 
-# Correct the TD for the F1 dimenson 
-td_one_exp = dic[acqus_files[-1]]['TD'] // split
-dic[acqus_files[-1]]['TD'] = td_one_exp 
+# Correct the TD for the F1 dimenson
+td_one_exp = dic[acqus_files[-1]]["TD"] // split
+dic[acqus_files[-1]]["TD"] = td_one_exp
 
 
 # Split the data
-outdata = {} 
+outdata = {}
 for i in range(split):
     outdata[i] = data[i::split]
 
 # Write in 'split' number of dataset
 for i in range(split):
-    odir = os.path.join(curdir, str(int(oexpno) + i)) 
-    ng.bruker.write(odir, dic, outdata[i], overwrite=overwrite,
-                    write_procs=True, pdata_folder=True)
-
+    odir = os.path.join(curdir, str(int(oexpno) + i))
+    ng.bruker.write(
+        odir, dic, outdata[i], overwrite=overwrite, write_procs=True, pdata_folder=True
+    )
