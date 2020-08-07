@@ -37,6 +37,9 @@ with open(title_path, "r") as f:
     elif argv[1] == "-a":
         title_new = title + "\n" + title_new
 
+    elif arg[1] == "-o":
+        pass
+
     elif argv[1] == "-c":
         copy_title_path = os.path.join(
             curdir, curexpname, argv[2], "pdata", "1", "title"
