@@ -8,7 +8,7 @@ argv = sys.argv
 curexpname, curexpno, curprocno, curdir = CURDATA()
 
 
-if argv[1] not in ["-a", "-p", "-c"]:
+if argv[1] not in ["-a", "-p", "-c", "-o"]:
     newargs = []
     newargs.append(argv[0])
     newargs.append("-a")
@@ -37,7 +37,7 @@ with open(title_path, "r") as f:
     elif argv[1] == "-a":
         title_new = title + "\n" + title_new
 
-    elif arg[1] == "-o":
+    elif argv[1] == "-o":
         pass
 
     elif argv[1] == "-c":
