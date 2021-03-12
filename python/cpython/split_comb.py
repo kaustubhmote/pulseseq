@@ -78,7 +78,7 @@ if len(f1coeffs) != split:
 
 
 # read the data
-dic, data = ng.bruker.read(os.path.join(curdir, iexpno), read_pulseprogram=False)
+dic, data = ng.bruker.read(os.path.join(curdir, iexpno), read_pulseprogram=False, read_procs=True)
 
 
 # get the dimension of data
