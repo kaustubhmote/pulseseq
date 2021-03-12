@@ -32,4 +32,5 @@ elif argv[1] == "p":
 
 
 # open a terminal to the required working directory
-os.system("gnome-terminal --working-directory={}".format(dir))
+os.system("kitty -d {}".format(dir))
+# os.system("gnome-terminal --working-directory={}".format(dir))
