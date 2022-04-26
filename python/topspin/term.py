@@ -26,11 +26,11 @@ if argv[1] == "d":
 
 elif argv[1] == "e":
     dir = os.path.join(curdir, curexpno)
-
+    
 elif argv[1] == "p":
     dir = os.path.join(curdir, curexpno, "pdata", curprocno)
 
 
 # open a terminal to the required working directory
-os.system("kitty -d {}".format(dir))
+os.system("kitty-terminal -d {}".format(dir))
 # os.system("gnome-terminal --working-directory={}".format(dir))
