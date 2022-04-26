@@ -1,0 +1,327 @@
+; hCCC+hNNC (t1-PR5-t2-DARR-t3 + t1-PDSD-t2-SPECIFIC_CP-t3) 
+
+; #---channels 
+# define H f2 
+# define C f1 
+# define N f3 
+
+; #---parameters 
+;cnst31: mas in Hz 
+;p1: 1H 90  
+;pl1: 1H hard pulse 
+;p2: 13C 90 
+;pl2: 13C hard pulse 
+;p3: 15N 90 
+;pl3: 15N hard pulse 
+;p15: SimCP 
+;sp0: 1H SimCP 
+;pl15: 13C SimCP 
+;pl16: 15N SimCP 
+;p8: PR5, =taur/5 (internal) 
+;pl8: PR5, =cnst31*2.5 
+;l8: PR5 loops, 1 loop = 2 taur 
+;pl10: DARR 
+;p10: DARR mixing time 
+;pl13: H CW decoupling during PR5, speficic cp 
+;pl12: H rCW-APA decoupling 
+;p32: 180 deg pulse for rcw (high power) decoupling  
+;p31: CW pulse for rCW-ApA decoupling (internal)  
+;p25: specific cp 
+;sp25: C specific cp 
+;pl25: N specific cp 
+;l0: CCC seq experiment number counter (internal) 
+;l1: NNC t1 increment counter (internal) 
+;l2: NNC t2 increment counter (internal) 
+;l4: NNC experiment number tracker 
+;l11: 13C-t1-increments/15N-t1-increments 
+;l5: Number of NNC experiments to after which to switch the transfer  
+; #---default delays 
+  "d58 = 1m" 
+  "d59 = 200u" 
+  "d60 = 0.1u" 
+  "d61 = 0.5u" 
+  "d62 = 1.0u" 
+  "d63 = 10u" 
+  "acqt0 = d60" 
+
+; #---decoupling high power rcwapa 
+  define delay taur 
+  "taur = 1s / cnst31" 
+  "p31 = (0.98*taur) - (0.5*p32)"  
+  
+; #---PR5 
+  "p8 = taur / 5.0" 
+
+; #---indirect increments 
+  "in0 = inf1" 
+  "in2 = inf2" 
+  "in3 = inf1 * cnst10" 
+  "in4 = inf2 * cnst10" 
+  
+; #---initial delays 
+  "d0 = 0.1u" 
+  "d2 = 0.1u" 
+  "d3 = 0.1u" 
+  "d4 = 0.1u" 
+  define delay dC 
+  "dC = d0 / 2" 
+
+; #---increments 
+  define loopcounter ni1_C 
+  "ni1_C = td1 / 2" 
+  define loopcounter ni2_C 
+  "ni2_C = td2 / 2" 
+  define loopcounter ni1_N 
+  "ni1_N = ni1_C / l11" 
+  define loopcounter ni2_N 
+  "ni2_N = ni2_C / l11" 
+
+; #---total evolution times
+  define delay t1C 
+  "t1C = d0 + (ni1_C-1) * in0" 
+  define delay t2C 
+  "t2C = d2 + (ni2_C-1) * in2" 
+  define delay t1N 
+  "t1N = d3 + (ni1_N-1) * in3" 
+  define delay t2N 
+  "t2N = d4 + (ni2_N-1) * in4" 
+  define delay t1max 
+  "t1max = max(t1C, t1N) + 3*max(p2, p3) + p20 + 2*p2 + 10u" 
+  define delay t2max 
+  "t2max = max(t2C, t2N) + 2*max(p2, p3) + 10u" 
+
+; #---constant duty cycle adjustments 
+  "d30 = t1max - d0" 
+  "d29 = t1max - d3" 
+  "d28 = t2max - d2" 
+  "d27 = t2max - d4" 
+
+; #---cp times adjustment 
+  "p13 = p15 - p2" 
+  "p14 = p15 - p3" 
+  "p24 = p25 - p3" 
+
+; #---trackers initial setting 
+  "l0 = 0" 
+  "l1 = 0" 
+  "l2 = 0" 
+  "l4 = 0" 
+  "l6 = 0" 
+
+  aqseq 312 
+
+; #------------------------#
+; #     ACTUAL PP STARTS   # 
+; #------------------------# 
+
+Pre, ze 
+
+Start, d62 
+
+; #---carbon center
+  d63 fq=0:C 
+
+; #---evolution time adjustments 
+  if "l1 == ni1_N" goto reset_N1 
+  goto dont_reset_N1 
+reset_N1, d60 
+  "d3 = 0.1u" 
+  "l1 = 0" 
+  
+  d62 iu6 
+  d62 ip15 
+  d62 ip15 
+ 
+  if "l6 % 2 == 0" goto cycle_ph14 
+  goto dont_cycle_ph14 
+cycle_ph14, d60 
+  d62 ip14 
+  d62 ip14 
+dont_cycle_ph14, d60 
+
+dont_reset_N1, d60 
+  if "l2 == ni2_N" goto reset_N2 
+  goto dont_reset_N2 
+reset_N2, d60 
+  "d4 = 0.1u" 
+  "l2 = 0" 
+  d62 iu4 
+ 
+dont_reset_N2, d60 
+
+; #----constant duty cycle adjustments 
+  "d30 = t1max - d0" 
+  "d29 = t1max - d3" 
+  "d28 = t2max - d2" 
+  "d27 = t2max - d4" 
+  "dC = d0 / 2" 
+
+; #---set correct buffer 
+if "l0 == 0" goto buffer_0 
+  goto buffer_123 
+buffer_0, d60 
+  d63 st0 
+  goto buffer_set 
+buffer_123, d60 
+;  d63 st 
+buffer_set, d60 
+
+; #---PR5 phase reset 
+    d62 rpp8 
+
+; #---inital power levels 
+  d63 pl1:H pl15:C pl16:N 
+
+; #---recycle delay 
+  d1 
+
+; #---90 
+  (p1 ph21):H 
+
+; #---CP 
+  if "l0 == 0" goto 2 v
+  goto 3 
+2 (p15:sp0 ph20):H (p13 ph20 p2 pl2 ph23):C (p14 ph15 p3 pl3 ph21):N 
+  goto 4 
+3 (p15:sp0 ph20):H (p13 ph20 p2 pl2 ph23):C 
+  
+; #---t1 evolution with C' refocusing 
+4 d60 pl12:H 
+  d60 cpds2:H  
+  if "l0 == 0" goto 5  
+  goto 6 
+5 (d30 p2 pl2 ph21 dC p20:sp20 ph7 p2*2 pl2 ph20 dC p2 pl2 ph11):C  (d29 p3 pl3 ph16 d3 p3 pl3 ph14):N 
+  d60 do:H 
+  goto 7 
+6 (d30 p2 pl2 ph21 dC p20:sp20 ph7 p2*2 pl2 ph20 dC p2 pl2 ph11):C 
+  d60 do:H 
+
+# ifdef pr5 
+;   #---PR5 mixing 
+7   d60 pl13:H 
+    d60 cw:H 
+8   (p8 pl8 ph8^ ):C 
+    lo to 8 times 10 
+    lo to 8 times l8 
+    d60 do:H 
+# else 
+; #---short DARR 
+7   (p9 pl10 ph20):H 
+# endif 
+
+;  #---t2 evolution 
+9  d60 pl12:H 
+   d60 cpds2:H  
+11 (d28 p2 pl2 ph12 d2 p2 pl2 ph13):C 
+   d60 do:H
+
+; #---DARR mixing 
+12 (p10 pl10 ph20):H 
+
+; #---bring back 13C 
+  d60 pl12:H 
+  d60 cpds2:H 
+  (p2 pl2 ph21):C 
+
+; #---acquire CCC 
+  goscnp ph31 finally do:H 
+
+; #---CCC phase cycle 
+  d63 ipp7 ipp11 ipp12 ipp13 ipp31 
+
+; #---buffer tracker increment 
+  d63 iu0 
+  lo to Start times 4 
+
+; #---reset 13C expt tracker 
+  "l0 = 0"  
+
+; #---shift to the buffer for NNC 
+  d63 st 
+
+; #---short delay (upto d1/2) 
+  d11 
+
+; bring back 15N and do t2 evolution 
+  d60 pl12:H 
+  d60 cpds2:H 
+  (d27 p3 pl3 ph17 d4):N 
+  d60 do:H 
+
+; #---NC transfer 
+# ifdef nncannco 
+  if "l4 >= l5" goto switch_nc 
+  (p25 pl13 ph20):H (p25:sp25 ph20):C (p25 pl25 ph25):N 
+  goto esc_switch 
+switch_nc, d63 
+  (p25 pl13 ph20):H (p25:sp26 ph20):C (p25 pl25 ph25):N 
+# else 
+  (p25 pl13 ph20):H (p25:sp25 ph20):C (p25 pl25 ph25):N 
+# endif 
+
+; #---acquire NNC 
+esc_switch, d60 pl12:H 
+  goscnp ph29 cpds2:H finally do:H 
+
+  d63 ipp25 ipp29 
+  lo to Start times ns 
+
+; #---- transfer data and shift 
+  d58 wr #0 if #0 zd 
+
+; #---quadrature 1 
+  d62 ip11 
+  d62 ip16 
+  lo to Start times 2 
+
+; #---t1C 
+  d62 id0 
+  d62 id3 
+  d62 iu1 
+  lo to Start times ni1_C 
+
+; #---quadrature 2 
+  d62 rd0 
+  d62 rd3 
+  d62 rpp11 
+  d62 rpp16 
+  d62 ip13 
+  d62 ip17 
+  lo to Start times 2 
+
+; #---t2C 
+  d62 id2 
+  d62 id4 
+  d62 iu2 
+  lo to Start times ni2_C 
+
+; #---THE END 
+HaltAcqu, d58  
+exit 
+
+
+; #---phase tables 
+
+; #---13C expt 
+  ph7 = 0 0 0 0 1 1 1 1 
+  ph11 = 1 3  
+  ph12 = 1 1 3 3 
+  ph13 = 1 
+  ph31 = 0 2 2 0 2 0 0 2 
+
+; #---15N expt 
+  ph14 = 1 
+  ph15 = 0 
+  ph16 = 3 
+  ph17 = 3  
+  ph25 = 0 2 
+  ph29 = 0 2  
+
+; #---PR5 
+   ph8 = (360) 0 36 180 90 90 306 306 198 342 18 
+
+; x, y, -x, -y
+  ph20 = 0 
+  ph21 = 1 
+  ph22 = 2 
+  ph23 = 3 

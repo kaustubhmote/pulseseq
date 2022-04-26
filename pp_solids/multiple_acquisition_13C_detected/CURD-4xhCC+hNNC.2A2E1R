@@ -1,0 +1,309 @@
+; # parameters
+;p1: 1H 90 pulse @ pl1
+;p15: CP contact time
+;pl1: 1H 90 @ p1 us
+;pl15: 13C CP
+;sp0: 1H CP
+;pl12: decoupling power level
+;cpdprg2: decoupling sequence
+;spnam0: ramp for CP on 1H
+;cnst31: MAS frequency
+;taur: =1/cnst31, rotor period [set internally]
+;d58: =1m [data transfer, channel switch]
+;d59: =200u [gradient recovery]
+;d60: =0.1u [decoupling on/off]
+;d61: =0.2u [power level change]
+;d62: =0.5u [frequency switch]
+;d63: =10u [buffer switch]
+
+
+; channels
+# define H f2
+# define C f1
+# define N f3
+
+
+; include files
+#include <Avancesolids_krm.incl>
+#include <Delayssolids.incl>
+
+
+; default delays
+  "d58 = 1m"
+  "d59 = 200u"
+  "d60 = 0.1u"
+  "d61 = 0.5u"
+  "d62 = 1.0u"
+  "d63 = 10u"
+;  misc
+  "acqt0 = d60"
+
+
+; decoupling
+# ifdef rcwhp
+;p32: 180 deg pulse for rcw (high power) decoupling  
+;p31: CW pulse for rCW-ApA decoupling (set internally)
+  define delay taur
+  "taur = 1s/cnst31"
+  "p31 = (0.98*taur) - (0.5*p32)" 
+# endif
+
+
+; pp specific settings
+  "p14 = p15 - p3"
+
+
+; indirect dimension settings
+;ni: total 13C increments
+;cnst0: 13C SW/15N SW
+;l0: 15N repeats
+;l2: 15N increments [internally calculated]
+;l1: 15N increment tracker 
+
+  define loopcounter ni_C
+  define loopcounter ni_N1
+  define loopcounter ni_N2
+  "ni_N1 = 16"
+  "ni_N2 = 16"
+  "ni_C = ni_N1 * ni_N2"
+  "in0 = 28u"
+  "in2 = 350u"
+  "in3 = 350u"
+  "l1 = 0"
+  "l11 = 0"
+
+  define delay t1C
+  define delay t1N
+  define delay t2N
+  "t1C = d0 + in0 * ni_C"
+  "t1N = d2 + in2 * ni_N1"
+  "t2N = d3 + in3 * ni_N2"
+  "d0 = 0.1u"
+  "d2 = 0.1u"
+  "d3 = 0.1u"
+  "d30 = t1C - d0" 
+
+  define delay aq_minus_d2
+  define delay aq_minus_d3
+  "aq_minus_d2 = aq - 2*p3 - d2"
+  "aq_minus_d3 = aq - 2*p3 - d3"
+
+
+; pulse program starts 
+
+
+Prepare, ze
+
+t1N
+t1C
+t2N
+
+
+Check, d63 
+
+
+Start, d63
+
+; recycle delay
+  d1
+
+  if "l11 == 256" goto reset_C
+  goto dont_reset_C
+reset_C, d63
+  "d0 = 0.1u"
+  "l11 = 0"
+dont_reset_C, d63
+
+
+; 1st buffer
+
+if "l1 == 0" goto 1
+  goto 2
+1 d63 st0
+  goto esc
+2 d63 st
+esc, d63
+
+
+; set appropriate delays
+  "aq_minus_d2 = aq - 2*p3 - d2"
+  "aq_minus_d3 = aq - 2*p3 - d3"
+  "d30 = t1C - d0"
+ 
+
+; start rec
+  STARTADC31
+  RESETPHASE
+
+
+; initial power levels
+  d63 pl1:H pl15:C pl16:N
+
+
+; first 90 pulse
+  (p1 ph1):H
+
+
+; CP
+  if "l1 == 0" goto 3
+  goto 4
+3 (p15:sp0 ph20):H (p15 ph16):C (p14 ph20 p3 pl3 ph23):N
+  goto 5
+4 (p15:sp0 ph20):H (p15 ph16):C 
+
+
+; indirect 13C evolution
+5 d60 pl12:H
+  d0 cpds2:H
+  d60 do:H
+
+  (p2 pl2 ph11):C
+
+  if "l1 == 0" goto pdsd1
+  if "l1 == 1" goto pdsd2
+  if "l1 == 2" goto pdsd3
+  if "l1 == 3" goto pdsd4
+
+pdsd1, 25m
+goto escape
+
+pdsd2, 50m
+goto escape
+
+pdsd3, 75m
+goto escape  
+
+pdsd4, 100m
+goto escape
+
+escape, d63
+
+  (p2 pl2 ph19):C
+
+  if "l1 == 0" goto 6
+  if "l1 == 1" goto 7
+  if "l1 == 2" goto 7
+  if "l1 == 3" goto 8
+
+
+6 d60 pl12:H
+  d63 cpds2:H
+  2u RGP_ADC_ON
+  2u RG_ON DWL_CLK_ON
+  aq_minus_d2 
+  (p3 pl3 ph21):N
+  d2
+  (p3 pl3 ph17):N 
+  2u RG_OFF DWL_CLK_OFF
+;  d30
+  d60 do:H
+  goto 9
+
+7 d60 pl12:H
+  d63 cpds2:H
+  2u RGP_ADC_ON
+  2u RG_ON DWL_CLK_ON
+  aq
+  2u RG_OFF DWL_CLK_OFF
+;  d30
+  d60 do:H
+  goto 9
+ 
+
+8 d60 pl12:H
+  d63 cpds2:H
+  2u RGP_ADC_ON
+  2u RG_ON DWL_CLK_ON
+  aq_minus_d3 
+  (p3 pl3 ph21):N
+  d3
+  (p3 pl3 ph18):N 
+  2u RG_OFF DWL_CLK_OFF
+;  d30
+  d60 do:H
+ 
+
+9 d63 eoscnp
+  d63 iu1
+
+  lo to Start times 4
+; reset l1
+  "l1 = 0"
+
+  d11
+; NNC second acquisition starts
+  d63 st
+
+; start rec
+  STARTADC29 
+  RESETPHASE
+
+
+ (p3 pl3 ph21):N
+ (p25 pl13 ph20):H (p25:sp25 ph25):C (p25 pl25 ph20):N
+
+
+; acquire
+  d60 pl12:H
+  d63 cpds2:H
+  2u RGP_ADC_ON
+  2u RG_ON DWL_CLK_ON
+  aq
+  2u RG_OFF DWL_CLK_OFF
+  d60 do:H
+  d63 rcyc=Start
+
+
+; write data
+  d58 wr #0 if #0 zd
+
+
+; quadrature
+  d63 ip16
+  d63 ip17
+  lo to Start times 2
+
+  d63 iu11
+  d63 id0
+  d63 id2
+  lo to Start times ni_N1
+
+
+  d63 rpp17
+  d63 rd2
+  d63 ip18
+  d63 id0
+  lo to Start times 2
+
+
+  d63 id3
+  d63 id0
+  lo to Start times ni_N2
+  
+
+; END
+HaltAcqu, d58       
+exit
+
+
+; phase tables
+;ns: min=2, full=8 [ns=2, 4*n, 8*n]
+   ph1 = 1 
+  ph16 = 0
+  ph11 = 1 3
+  ph19 = 1 1 3 3
+  
+  ph17 = 1  
+  ph18 = 1 3 
+  ph25 = 0 0 2 2
+  ph31 = 0 2 2 0   
+  ph29 = 0 2 2 0
+  ph30 = 0
+
+
+; defaults for 0 1 2 3
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3    
+; #---------------------
