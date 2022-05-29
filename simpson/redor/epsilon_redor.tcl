@@ -1,69 +1,84 @@
 spinsys {
     channels 13C 1H
     nuclei 13C 1H
-    dipole 1 2 -5000 0 39 0
+    dipole 1 2 -5000 0 0 0
 }
 
 par {
     proton_frequency 700e6
     spin_rate        62500
-    sw               31250
-    np               30
-    crystal_file     zcw143
-    gamma_angles     12
+    sw               spin_rate
+    np               32
+    crystal_file     zcw376
+    gamma_angles     32
     start_operator   I1x
     detect_operator  I1p
     variable rf      100e3
     verbose          0100
-    num_cores	     4
+    num_cores	     1
     variable epsilon 0.25
 }
 
 proc pulseq {} {
+
     global par
+    maxdt 0.2
 
-    maxdt 1.0
+    #---verify global parameters
+    if {$par(epsilon) < 0.25} {
+        puts stderr "ValueError: epsilon cannot take values less than 0.25.\nCurrently it is set to $par(epsilon)"
+        exit 1
+    }
 
+    if {$par(rf) < $par(spin_rate)} {
+        puts stderr "ValueError: RF ($par(rf)) cannot be lower than the spin rate ($par(spin_rate)).\nUse DEDOR instead of REDOR if this is required."
+        exit 1
+    }
+
+    #---calculated parameters
     set t180  [expr 0.5e6 / $par(rf)]
     set tr    [expr 1.0e6 / $par(spin_rate)]
     set trc   [expr (1.00 * $tr) - (0.5 * $t180)]
     set qtr   [expr (0.25 * $tr) - (0.5 * $t180)]
-    set ini   [expr $par(epsilon - 0.25) * $tr]
+    set ini   [expr ($par(epsilon) - 0.25) * $tr]
     set final [expr $tr - $ini]
 
+    #---redor recoupling left block propagator
+    reset $ini
+    delay $qtr
+    pulse $t180 0 x $par(rf)  x
+    delay $qtr
+    delay $qtr
+    pulse $t180 0 x $par(rf)  y
+    delay $qtr
+    store 1
+
+    #---redor recouplign right block propagator
+    reset $final
+    delay $qtr
+    pulse $t180 0 x $par(rf)  x
+    delay $qtr
+    delay $qtr
+    pulse $t180 0 x $par(rf)  y
+    delay $qtr
+    store 3
+
+    #---central block propagator
     reset
     delay $trc
     pulse $t180 $par(rf) x $par(rf) x
     delay $trc
     store 2
 
-    reset
+    #---actual epsilon_REDOR starts
     for {set i 0} {$i < $par(np)} {incr i} {
         reset
-
         delay $ini
-        for {set j 0} {$j<$i} {incr j} {
-            delay $qtr
-            pulse $t180 0 x $par(rf)  x
-            delay $qtr
-            delay $qtr
-            pulse $t180 0 x $par(rf)  y
-            delay $qtr
-
-        }
-
+        prop 1 $i
         delay $final
         prop 2
         delay $final
-
-        for {set j 0} {$j<$i} {incr j} {
-            delay $qtr
-            pulse $t180 0 x $par(rf)  y
-            delay $qtr
-            delay $qtr
-            pulse $t180 0 x $par(rf)  x
-            delay $qtr
-        }
+        prop 3 $i
         delay $ini
         acq
     }
@@ -74,5 +89,3 @@ proc main {} {
     set f [fsimpson]
     fsave $f $par(name).fid
 }
-
-
