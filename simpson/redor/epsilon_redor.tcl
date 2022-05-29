@@ -1,3 +1,8 @@
+# ε-REDOR
+# M. G. Jain et al., J. Chem. Phys. 150, 134201 (2019).
+# 1. rf: nutation for the recoupling pulses
+# 2. epsilon: scaling = sin(2*π*ε)
+
 spinsys {
     channels 13C 1H
     nuclei 13C 1H
@@ -13,9 +18,9 @@ par {
     gamma_angles     32
     start_operator   I1x
     detect_operator  I1p
-    variable rf      100e3
     verbose          0100
     num_cores	     1
+    variable rf      100e3
     variable epsilon 0.25
 }
 
