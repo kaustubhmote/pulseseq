@@ -102,7 +102,6 @@ proc pulseq {} {
 
 proc main {} {
     global par
-    puts [expr fmod(1003, 16)]
     set f [fsimpson]
     fsave $f $par(name).fid
 }
