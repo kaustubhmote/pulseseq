@@ -17,6 +17,7 @@ par {
     gamma_angles     32
     start_operator   I2x
     detect_operator  I1p
+    method           taylor
     verbose          0100
     num_cores	     4
     variable rf      100e3
