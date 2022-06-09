@@ -1,3 +1,6 @@
 python/temp.py
 python/*.class
+simpson/*/*.fid
+simpson/*/*.spe
 __pycache__
+
