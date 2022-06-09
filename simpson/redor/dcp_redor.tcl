@@ -13,18 +13,18 @@ par {
     crystal_file      zcw376
     gamma_angles      32
     sw                spin_rate
-    start_operator    I1x
+    start_operator    I1x+I2z
     detect_operator   I1p
-    verbose           0100
+    verbose           0000
     num_cores	      4
     method            taylor
     variable rf       100e3
     variable cpf_rfH  150e3
     variable cpf_rfC  87.5e3
-    variable cpf_time 300
+    variable cpf_time 400
     variable cpr_rfH  150e3
     variable cpr_rfC  87.5e3
-    variable cpr_time 300       
+    variable cpr_time 400       
 
 }
 
@@ -53,6 +53,7 @@ proc pulseq {} {
         set cp_delta [expr $cp_delta - $tr]
     }
 
+
     #---transverse I2 magnetization to be selected after cp
     matrix set 1 operator I2x+I2y
 
@@ -69,6 +70,12 @@ proc pulseq {} {
     prop 2 $cpf_ntr
     store 2
 
+    reset
+    delay [expr $tr - $cp_delta]
+    prop 1
+    prop 2
+    store 2
+
     #---reverse cp
     reset [expr -$cpr_delta]
     pulse $cpr_delta $par(cpr_rfC) x $par(cpr_rfH) x
@@ -80,6 +87,11 @@ proc pulseq {} {
 
     reset
     prop 4 $cpr_ntr
+    store 4
+
+    reset [expr -$cpr_delta]
+    prop 3
+    prop 4
     store 4
 
     #---redor recoupling propagator
@@ -101,11 +113,8 @@ proc pulseq {} {
 
     #---cp redor starts
     reset
-    delay [expr $tr - $cp_delta]
-    prop 1
     prop 2
     filter 1
-    prop 3
     prop 4
     prop 7
     acq
@@ -118,15 +127,11 @@ proc pulseq {} {
         store 7
 
         reset
-        delay [expr $tr - $cp_delta]
-        prop 1
         prop 2
         filter 1
-        prop 3
         prop 4 
         prop 7
         acq
-
     }
 
 
