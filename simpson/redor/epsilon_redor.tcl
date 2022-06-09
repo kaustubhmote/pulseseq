@@ -18,6 +18,7 @@ par {
     gamma_angles     32
     start_operator   I1x
     detect_operator  I1p
+    method           taylor
     verbose          0100
     num_cores	     1
     variable rf      100e3
@@ -76,14 +77,38 @@ proc pulseq {} {
     store 2
 
     #---actual epsilon_REDOR starts
-    for {set i 0} {$i < $par(np)} {incr i} {
+
+    reset
+    delay $tr
+    prop 2
+    delay $tr
+    acq
+
+    reset $ini
+    prop 1
+    delay $final
+    prop 2
+    delay $final
+    prop 3
+    store 4
+
+    reset
+    delay $ini
+    prop 4
+    delay $ini
+    acq
+
+    for {set i 2} {$i < $par(np)} {incr i} {
+
+        reset $ini
+        prop 1
+        prop 4
+        prop 3
+        store 4
+
         reset
         delay $ini
-        prop 1 $i
-        delay $final
-        prop 2
-        delay $final
-        prop 3 $i
+        prop 4
         delay $ini
         acq
     }
