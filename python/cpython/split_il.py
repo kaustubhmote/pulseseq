@@ -69,7 +69,7 @@ else:
 
 
 # Read the data
-dic, data = ng.bruker.read(indir)
+dic, data = ng.bruker.read(indir, read_pulseprogram=False)
 
 # Determine the dimensionality and the acqus files
 ndim = dic["acqus"]["PARMODE"] + 1
@@ -94,5 +94,5 @@ for i in range(split):
 for i in range(split):
     odir = os.path.join(curdir, str(int(oexpno) + i))
     ng.bruker.write(
-        odir, dic, outdata[i], overwrite=overwrite, write_procs=True, pdata_folder=True
+        odir, dic, outdata[i], overwrite=overwrite, write_procs=True, pdata_folder=True, write_prog=False,
     )
