@@ -125,10 +125,7 @@
 
 ; #---pulse seq starts
 1 ze	
-2 d60 do:X
-
-; #---recycle delay
-  d1 
+2 d1 do:X
 
 ; #---check settings
 # ifdef wacq 
