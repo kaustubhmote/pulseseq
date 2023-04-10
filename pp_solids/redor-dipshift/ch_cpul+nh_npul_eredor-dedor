@@ -1,0 +1,570 @@
+; hCH-Cpul-eREDOR+hNH-Npul-DEDOR
+; sequential acquisition of CH and NH eREDOR/DEDOR
+
+; #---Reference
+; Taware et al, J Phys Chem Lett (2023) doi:10.1021/acs.jpclett.3c00492
+
+; #---Bugs
+; raise a PR/Issue or email krmote@tifrh.res.in
+
+; #---parameters
+;cnst31: mas frequency in Hz
+;taur: [internally set] rotor period
+;p1: 1H 90 @ plw1
+;p2; 13C 90 @ plw2
+;p3; 15N 90 @ plw3
+;pl1: H hard pulse
+;pl2: C hard pulse
+;pl3: N hard pulse
+;p15: simcp H to C/N
+;spw0: simcp H
+;plw15: simcp C
+;plw16: simcp N
+;p17: C to H rev cp
+;p18: N to H rev cp
+;plw17: C, C to H rev cp
+;plw18: N, N to H rev cp
+;spw3: H, C to H rev cp
+;spw4: H, N to H rev cp
+;p10: C redor pulses (pi) @ plw10
+;p11: N redor pulses (pi) @ plw11
+;pl10: C redor pulses
+;pl11: N redor pulses
+;d27: [internally calculated] adjusting the echo at the end before detection
+;pl40: [=0] dummy for S0
+;pl41 [=0] dummy for S
+
+; #---channels
+# define H f1
+# define C f2
+# define N f3
+
+
+; #---default delays
+  "d58 = 1m"
+  "d59 = 200u"
+  "d60 = 0.1u"
+  "d61 = 0.5u"
+  "d62 = 1.0u"
+  "d63 = 10u"
+  
+
+; #---misc
+  "acqt0 = -de"
+
+; #---mas
+  define delay taur
+  "taur = 1s/cnst31"
+
+; #---decoupling
+;l12: N = [14/16/18/20/22]
+;p32: pulse for low power rCW-ApA decoupling (set internally) 
+;p31: pulse for low power rCW-ApA decoupling (set internally)
+;cpdprg2: rcwapa 
+  "p31 = 0.2125 * l12 * taur"
+  "p32 = 0.075 * l12 * taur"
+
+
+; #---water suppression (SLAP)
+;d7: water suppression time
+;p30: cw pulse time [~10ms]
+;p20: SLAP pulse time [=1ms]
+;l30: [internally calculated] number of loops for SLAP adb pulse 
+;plw7: RF power for CW
+;spw30: rf for SLAP adb pulse
+;spnam30: SLAP
+ "l30 = (d7 - p30) / 1m"
+ "p20 = 1m"
+
+
+; #---loops, S0_c, S0_n, S_c, S_n
+;ni: number of points for redor for C/N
+;td1: total number of points
+;nbl: [=4]
+  define loopcounter ni
+  "ni = td1 / 4"
+
+
+; #---redor/dedor and rotor period settings
+;cnst11: kappa_phi for CH
+;cnst12: kappa_phi for NH
+;d25: qtr taur for CH (adj for finite pi pulse)
+;d35: qtr taur for NH (adj for finite pi pulse)
+;l1: initial num of redor loops for CH
+;l2: redor loop increment number for CH
+;l3: initial num of redor loops for NH
+;l4: redor loop increment for NH
+;c_redor_time: total CH redor dephasing time
+;n_redor_time: total NH redor dephasing time
+
+  "plw40 = 0"
+  "plw41 = 0"
+  define delay c_redor_time
+  define delay n_redor_time
+
+# ifdef cdedor
+  "d25 = 3 * (taur / 4.0) - (p10 / 2.0)"  
+  "cnst11 = cos(0.5 * PI * (2 * p10 / taur)) / (1 - pow( 2 * p10 / taur, 2))"
+  "c_redor_time = 3 * taur * (l1 + l2 * 2 * (ni - 1))"
+# else
+  "d25 = 1 * (taur / 4.0) - (p10 / 2.0)"
+  "cnst11 = cos(0.5 * PI * (2 * p10 / taur)) / (1 - pow(2 * p10 / taur, 2))"
+  "c_redor_time = taur * (l1 + l2 * 2 * (ni-1))"
+# endif
+
+# ifdef ndedor
+  "d35 = 3 * (taur / 4.0) - (p11 / 2.0)"  
+  "cnst12 = cos(0.5 * PI * (2 * p11 / taur)) / (1 - pow( 2 * p11 / taur, 2))"
+  "n_redor_time = 3 * taur * (l3 + l4 * 2 * (ni - 1))"
+# else
+  "d35 = 1 * (taur / 4.0) - (p11 / 2.0)"
+  "cnst12 = cos(0.5 * PI * (2 * p11 / taur)) / (1 - pow(2 * p11 / taur, 2))"
+  "n_redor_time = taur * (l3 + l4 * 2 * (ni - 1))"
+# endif
+
+
+; #---eREDOR scaling factors
+;cnst8: kappa_epsilon for CH
+;cnst9: kappa_epsilon for NH
+;d24: pre-dualy for epsilon scaling for CH (taur / 2 for no scaling)
+;d34: pre-dualy for epsilon scaling for NH (taur / 2 for no scaling)
+;d26: [internally calculated] post-delay for epsilon scaling CH
+;d36: [internally calculated] post-delay for epsilon scaling NH
+
+  "cnst8 = abs(sin(2 * PI * ((d24 + d25 + p10 * 0.5) / taur)))"
+  "cnst9 = abs(sin(2 * PI * ((d34 + d35 + p11 * 0.5) / taur)))"
+  "d26 = 2 * taur - d24"
+  "d36 = 2 * taur - d34"
+
+; #---central rotor period
+;l8: num rotor period for central block CH
+;l9: num rotor period for central block NH
+;d8: [set internally] central rotor period for CH 
+;d9: [set internally] central rotor period for NH
+;p9: central pi pulse on H
+;p5: central pi pulse on CA (selective)
+  "d8 = l8 * taur - max(p5, p9) * 0.5"
+  "d9 = l9 * taur - max(4 * p3, p9) * 0.5"
+
+
+; #---indirect evolution
+;ni2: indirect increments
+;in0: dwell tme for C
+;in2: dwell time for N
+;d0: current evolution time for C
+;d2: current evolution time for N
+;t1c_total: totol indirect evol. time for C
+;t1n_total: total indirect evol. time for N
+;DELTA_C: [internal] = d0 / 2
+;DELTA_N: [internal] = d2 / 2
+  define loopcounter ni2
+  define delay DELTA_C
+  define delay DELTA_N
+  define delay t1c_total
+  define delay t1n_total
+
+  "d0 = 0.1u"
+  "d2 = 0.1u"
+  "ni2 = td2 / 2"
+  "t1c_total = in0 * (ni2 - 1) + d0 + 10u" 
+  "t1n_total = in2 * (ni2 - 1) + d2 + 10u"  
+  "DELTA_C = d0 / 2"
+  "DELTA_N = d2 / 2"
+
+
+Pre, ze
+
+; so that everything shows up in acqupars
+  "d53 = cnst8 * 1u"
+  d53
+  "d53 = cnst9 * 1u"
+  d53
+  "d53 = cnst11 * 1u"
+  d53
+  "d53 = cnst12 * 1u"
+  d53 c_redor_time n_redor_time d25 d35
+  DELTA_C DELTA_N t1c_total t1n_total d29 d30
+
+; #--------------------------#
+; #       S Starts           #
+; #--------------------------#
+
+	
+Start, d63
+
+; #---recycle 
+  d1	
+
+
+; #---reset stuff
+  d63 rpp10
+  d63 rpp11
+  d63 fq=0:H
+  d63 fq=0:C
+  d63 fq=0:N
+
+; #---calculate stuff
+
+  "d29 = t1c_total - d0"
+  "d30 = t1n_total - d2"
+  "DELTA_C = d0 / 2"
+  "DELTA_N = d2 / 2"
+
+; #---1st buffer
+  d63 st0
+
+; #---initial power	
+  d63 pl1:H pl15:C pl16:N	
+
+; #---90 pulse
+  (p1 ph1):H
+
+; #---Sim-CP					
+  (p15:sp0 ph20):H (p15 ph20):C (p15 ph20):N
+
+; #---put both on Z
+  (p2 pl2 ph23):C (p3 pl3 ph13):N
+
+; #---13C indirect evolution
+  d60 pl12:H
+  d29 cpds2:H
+  (p2 pl2 ph5):C
+  
+  DELTA_C
+
+  (center
+   (p2*2 pl2 ph20 p12:sp12 ph12):C
+   (p3*2 pl3 ph20):N
+  )
+
+  DELTA_C
+ 
+  (p2 pl2 ph23):C
+  d60 do:H
+
+; #---water suppression (slap)
+  d61 fq=cnst7:H				
+  (p30 pl7 ph20):H
+LabelA, d60
+  (p20:sp30 ph20):H
+  lo to LabelA times l30
+  d61 fq=0:H
+
+; #---bring c13 back
+  (p2 pl2 ph15):C
+
+; #---reverse cp
+  (p17:sp3 ph20):H (p17 pl17 ph17):C	
+
+; #---CH REDOR/DEDOR
+
+  d24
+3 d25
+  (p10 pl10 ph10^):C
+  d25
+  d25
+  (p10 pl10 ph10^):C
+  d25
+  lo to 3 times l1
+  d26
+
+  d8
+  (center 
+     (p9 pl9 ph9):H 
+     (p5:sp5 ph20):C
+  )
+  d8
+
+  d26
+4 d25
+  (p10 pl10 ph10^):C
+  d25
+  d25
+  (p10 pl10 ph10^):C
+  d25
+  lo to 4 times l1
+  "d27 = d24 - d60 - de"
+  d27
+
+
+; #---detect c13
+  d60 pl13:C
+  goscnp ph31	cpds3:C finally do:C
+  d60 do:C
+
+; #---next buffer
+  d63 st
+
+; #---shift c13 offset for CN J-decoupling
+  d63 fq=cnst13:C
+
+; #---15N indirect evolution
+  d60 pl12:H
+  d30 cpds2:H
+  (p3 pl3 ph16):N
+  
+  DELTA_N
+
+  (p2 pl2 ph20 p2*2 pl2 ph21 p2 pl2 ph20):C
+
+  DELTA_N
+ 
+  d60 do:H
+
+; #---reverse cp
+  (p18:sp4 ph20):H (p18 pl18 ph18):N	
+
+; #---NH REDOR/DEDOR
+  d34
+5 d35
+  (p11 pl11 ph11^):N
+  d35
+  d35
+  (p11 pl11 ph11^):N
+  d35
+  lo to 5 times l3
+  d36
+
+  d9
+  (center 
+     (p9 pl9 ph9):H 
+     (p3 pl3 ph20 p3*2 pl3 ph21 p3 pl3 ph20):N
+  )
+  d9
+
+  d36
+6 d35
+  (p11 pl11 ph11^):N
+  d35
+  d35
+  (p11 pl11 ph11^):N
+  d35
+  lo to 6 times l3
+  "d27 = d34 - d60 -de"
+  d27
+
+; #---acquire
+  d60 pl14:N
+  goscnp ph31	cpds4:N finally do:N
+  d60 do:
+
+; #--------------------------#
+; #        S0 Starts         #
+; #--------------------------#
+
+; #---recycle 
+  d1	
+
+; #---reset stuff
+  d63 rpp10
+  d63 rpp11
+  d63 fq=0:H
+  d63 fq=0:C
+  d63 fq=0:N
+
+; #---calculate stuff
+
+  "d29 = t1c_total - d0"
+  "d30 = t1n_total - d2"
+  "DELTA_C = d0 / 2"
+  "DELTA_N = d2 / 2"
+
+
+; #---3rd buffer
+  d63 st
+
+; #---initial power	
+  d63 pl1:H pl15:C pl16:N	
+
+; #---90 pulse
+  (p1 ph1):H
+
+; #---Sim-CP					
+  (p15:sp0 ph20):H (p15 ph20):C (p15 ph20):N
+
+; #---put both on Z
+  (p2 pl2 ph23):C (p3 pl3 ph13):N
+
+; #---13C indirect evolution
+  d60 pl12:H
+  d29 cpds2:H
+  (p2 pl2 ph5):C
+  
+  DELTA_C
+
+  (center
+   (p2*2 pl2 ph20 p12:sp12 ph12):C
+   (p3*2 pl3 ph20):N
+  )
+
+  DELTA_C
+
+  (p2 pl2 ph23):C
+  d60 do:H
+
+; #---water suppression (slap)
+  d61 fq=cnst7:H				
+  (p30 pl7 ph20):H
+LabelB, d60
+  (p20:sp30 ph20):H
+  lo to LabelB times l30
+  d61 fq=0:H
+
+
+; #---bring c13 back
+  (p2 pl2 ph15):C
+
+; #---reverse cp
+  (p17:sp3 ph20):H (p17 pl17 ph17):C	
+
+
+; #---CH REDOR/DEDOR
+
+  d24
+7 d25
+  (p10 pl40 ph10^):C
+  d25
+  d25
+  (p10 pl40 ph10^):C
+  d25
+  lo to 7 times l1
+  d26
+
+
+  d8
+  (center 
+     (p9 pl9 ph9):H 
+     (p5 pl40 ph20):C
+  )
+  d8
+
+  d26
+8 d25
+  (p10 pl40 ph10^):C
+  d25
+  d25
+  (p10 pl40 ph10^):C
+  d25
+  lo to 8 times l1
+  "d27 = d24 - d60 - de"
+  d27
+
+
+; #---detect c13
+  d60 pl13:C
+  goscnp ph31	cpds3:C finally do:C
+  d60 do:C
+
+; #---4th buffer
+  d63 st
+
+; #---shift c13 offset for CN J-decoupling
+  d63 fq=cnst13:C
+
+; #---15N indirect evolution
+  d60 pl12:H
+  d30 cpds2:H
+  (p3 pl3 ph16):N
+  
+  DELTA_N
+
+  (p2 pl2 ph20 p2*2 pl2 ph21 p2 pl2 ph20):C
+
+  DELTA_N
+ 
+  d60 do:H
+
+; #---reverse cp
+  (p18:sp4 ph20):H (p18 pl18 ph18):N	
+
+
+; #---NH REDOR/DEDOR
+  d34
+9 d35
+  (p11 pl41 ph11^):N
+  d35
+  d35
+  (p11 pl41 ph11^):N
+  d35
+  lo to 9 times l3
+  d36
+
+  d9
+  (center 
+     (p9 pl9 ph9):H 
+     (p3 pl41 ph20 p3*2 pl41 ph21 p3 pl41 ph20):N
+  )
+  d9
+
+  d36
+10 d35
+  (p11 pl41 ph11^):N
+  d35
+  d35
+  (p11 pl41 ph11^):N
+  d35
+  lo to 10 times l3
+  "d27 = d34 - d60 -de"
+  d27
+
+
+; #---acquire
+  d60 pl14:N
+  go=Start ph31	cpds4:N finally do:N
+  d60 do:N
+
+
+; #---write
+  d58 wr #0 if #0 zd
+
+
+; #---increment c13 redor blocks
+11 d63 iu1
+   lo to 11 times l2
+
+; #---increment 15N redor blocks
+12 d63 iu3
+   lo to 12 times l4
+
+  lo to Start times ni
+
+
+; #---quadrature
+  "l1 = 0"
+  "l3 = 0"
+  d63 ip5
+  d63 ip16
+  lo to Start times 2
+
+
+; #---t1 increment
+  d63 id0
+  d63 id2
+  lo to Start times ni2
+
+HaltAcqu, d58
+exit
+
+; #---phase tables
+; min=16, ns=16*n, full=32*n
+  ph1  = 1
+  ph12 = 0 1
+  ph13 = 1 3
+  ph5 = 1
+  ph6 = 1
+  ph15 = {1}*16 {3}*16
+  ph17 = 0 0 2 2
+  ph16 = {1}*16 {3}*16
+  ph18 = 0 0 2 2
+  ph9  = 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3
+  ph31 = 0 2 2 0 2 0 0 2 0 2 2 0 2 0 0 2
+         2 0 0 2 0 2 2 0 2 0 0 2 0 2 2 0
+
+  ph10 = 0 1 0 1 1 0 1 0
+  ph11 = 0 1 0 1 1 0 1 0
+
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3 
+
