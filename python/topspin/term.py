@@ -22,15 +22,18 @@ if len(argv) == 1:
     argv.append("e")
 
 if argv[1] == "d":
-    dir = curdir
+    dirc = curdir
 
 elif argv[1] == "e":
-    dir = os.path.join(curdir, curexpno)
+    dirc = os.path.join(curdir, curexpno)
     
 elif argv[1] == "p":
-    dir = os.path.join(curdir, curexpno, "pdata", curprocno)
+    dirc = os.path.join(curdir, curexpno, "pdata", curprocno)
 
 
 # open a terminal to the required working directory
-os.system("kitty-terminal -d {}".format(dir))
-# os.system("gnome-terminal --working-directory={}".format(dir))
+# choose one of the lines below depending on your terminal emulator
+# or add a line
+
+os.system("kitty -d {}".format(dirc))
+# os.system("gnome-terminal --working-directory={}".format(dirc))
