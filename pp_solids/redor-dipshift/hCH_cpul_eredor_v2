@@ -1,0 +1,367 @@
+; hCH-Cpul-eREDOR
+; hCH pseudo-3D with CH e-redor as the first dimension
+; No N pulse, non-selective for 13C
+
+; #---Reference
+; Taware et al, J Phys Chem Lett (2023) https://dx.doi.org/10/gr4k8t
+; Jain et al, J Chem Phys (2019) https://dx.doi.org/10/jj5r
+
+; #---Bugs
+; raise a PR/Issue at https://github.com/kaustubhmote/pulseseq/issues
+; or email krmote@tifrh.res.in
+
+; #---parameters
+;cnst31: mas frequency in Hz
+;taur: [internally set] rotor period
+;p1: 1H 90 @ plw1
+;p2; 13C 90 @ plw2
+;pl1: H hard pulse
+;pl2: C hard pulse
+;p15: cp H to C
+;spw0: cp H
+;plw15: cp C
+;p17: C to H rev cp
+;plw17: C, C to H rev cp
+;spw3: H, C to H rev cp
+;p10: C redor pulses (pi) @ plw10
+;pl10: C redor pulses
+;d27: [internally calculated] adjusting the echo at the end before detection
+;pl40: [=0] dummy for S0
+
+; #---channels
+# define H f1
+# define C f2
+
+
+; #---default delays
+  "d58 = 1m"
+  "d59 = 200u"
+  "d60 = 0.1u"
+  "d61 = 0.5u"
+  "d62 = 1.0u"
+  "d63 = 10u"
+  
+; #---misc
+  "acqt0 = -de"
+
+; #---mas
+  define delay taur
+  "taur = 1s/cnst31"
+
+; #---decoupling
+;l12: N = [14/16/18/20/22]
+;p32: pulse for low power rCW-ApA decoupling (set internally) 
+;p31: pulse for low power rCW-ApA decoupling (set internally)
+;cpdprg2: rcwapa 
+  "p31 = 0.2125 * l12 * taur"
+  "p32 = 0.075 * l12 * taur"
+
+
+; #---water suppression (SLAP)
+; Matsunaga, T., Okabe, R., Ishii, Y., 2021. J. Biomol. NMR 75, 365370.
+; alternative: use the MISSISSIPI seqeunce
+;d7: water suppression time
+;p30: cw pulse time [~10ms]
+;p20: SLAP pulse time [=1ms]
+;l30: [internally calculated] number of loops for SLAP adb pulse 
+;plw7: RF power for CW
+;spw30: rf for SLAP adb pulse
+;spnam30: SLAP
+ "l30 = (d7 - p30) / 1m"
+ "p20 = 1m"
+
+
+; #---loops, S0_c, S0_n, S_c, S_n
+;ni: number of points for redor for C
+;td1: total number of points
+;nbl: [=2]
+  define loopcounter ni
+  "ni = td1 / 2"
+
+
+; #---redor/dedor and rotor period settings
+;cnst11: kappa_phi for CH
+;d25: qtr taur for CH (adjusted for finite pi pulse)
+;l1: initial num of redor loops for CH
+;l2: redor loop increment number for CH
+;c_redor_time: total CH redor dephasing time
+
+  "plw40 = 0"
+  "plw41 = 0"
+  define delay c_redor_time
+
+# ifdef cdedor
+  "d25 = 3 * (taur / 4.0) - (p10 / 2.0)"  
+  "cnst11 = cos(0.5 * PI * (2 * p10 / taur)) / (1 - pow( 2 * p10 / taur, 2))"
+  "c_redor_time = 3 * taur * (l1 + l2 * 2 * (ni - 1))"
+# else
+  "d25 = 1 * (taur / 4.0) - (p10 / 2.0)"
+  "cnst11 = cos(0.5 * PI * (2 * p10 / taur)) / (1 - pow(2 * p10 / taur, 2))"
+  "c_redor_time = taur * (l1 + l2 * 2 * (ni-1))"
+# endif
+
+; #---eREDOR scaling factors
+;cnst8: kappa_epsilon for CH
+;d24: pre-dualy for epsilon scaling for CH (taur / 2 for no scaling)
+;d26: [internally calculated] post-delay for epsilon scaling CH
+
+  "cnst8 = abs(sin(2 * PI * ((d24 + d25 + p10 * 0.5) / taur)))"
+  "d26 = 2 * taur - d24"
+  "d36 = 2 * taur - d34"
+
+; #---central rotor period
+;l8: num rotor period for central block CH
+;d8: [set internally] central rotor period for CH 
+;p9: central pi pulse on H
+;p5: central pi pulse on CA (selective)
+  "d8 = l8 * taur - max(p5, p9) * 0.5"
+
+
+; #---indirect evolution
+;ni2: indirect increments
+;in0: dwell tme for C
+;d0: current evolution time for C
+;t1c_total: totol indirect evol. time for C
+;DELTA_C: [internal] = d0 / 2
+  define loopcounter ni2
+  define delay DELTA_C
+  define delay t1c_total
+  "d0 = 0.1u"
+  "ni2 = td2 / 2"
+  "t1c_total = in0 * (ni2 - 1) + d0 + 10u"   
+  "DELTA_C = d0 / 2"
+
+
+Pre, ze
+
+; so that everything shows up in acqupars
+  "d53 = cnst8 * 1u"
+  d53
+  "d53 = cnst11 * 1u"
+  d53
+  d53 c_redor_time d25
+  DELTA_C t1c_total d29 d30
+
+; #--------------------------#
+; #       S Starts           #
+; #--------------------------#
+
+	
+Start, d63
+
+; #---recycle 
+  d1	
+
+
+; #---reset stuff
+  d63 rpp10
+  d63 fq=0:H
+  d63 fq=0:C
+
+; #---calculate stuff
+  "d29 = t1c_total - d0"
+  "DELTA_C = d0 / 2"
+
+; #---1st buffer
+  d63 st0
+
+; #---initial power	
+  d63 pl1:H pl15:C	
+
+; #---90 pulse
+  (p1 ph1):H
+
+; #---CP					
+  (p15:sp0 ph20):H (p15 ph20):C
+
+; #---put 13C on Z
+  (p2 pl2 ph23):C 
+
+; #---13C indirect evolution
+  d60 pl12:H
+  d29 cpds2:H
+  (p2 pl2 ph5):C
+  d0
+  (p2 pl2 ph23):C
+  d60 do:H
+
+; #---water suppression (slap)
+  d61 fq=cnst7:H				
+  (p30 pl7 ph20):H
+LabelA, d60
+  (p20:sp30 ph20):H
+  lo to LabelA times l30
+  d61 fq=0:H
+
+; #---bring c13 back
+  (p2 pl2 ph15):C
+
+; #---reverse cp
+  (p17:sp3 ph20):H (p17 pl17 ph17):C	
+
+; #---CH REDOR/DEDOR
+
+  d24
+3 d25
+  (p10 pl10 ph10^):C
+  d25
+  d25
+  (p10 pl10 ph10^):C
+  d25
+  lo to 3 times l1
+  d26
+
+  d8
+  (center 
+     (p9 pl9 ph9):H 
+     (p5:sp5 ph20):C
+  )
+  d8
+
+  d26
+4 d25
+  (p10 pl10 ph10^):C
+  d25
+  d25
+  (p10 pl10 ph10^):C
+  d25
+  lo to 4 times l1
+  "d27 = d24 - d60 - de"
+  d27
+
+
+; #---detect c13
+  d60 pl13:C
+  goscnp ph31	cpds3:C finally do:C
+  d60 do:C
+
+; #--------------------------#
+; #        S0 Starts         #
+; #--------------------------#
+
+; #---recycle 
+  d1	
+
+; #---reset stuff
+  d63 rpp10
+  d63 fq=0:H
+  d63 fq=0:C
+
+; #---calculate stuff
+
+  "d29 = t1c_total - d0"
+  "DELTA_C = d0 / 2"
+
+
+; #---3rd buffer
+  d63 st
+
+; #---initial power	
+  d63 pl1:H pl15:C
+
+; #---90 pulse
+  (p1 ph1):H
+
+; #---Sim-CP					
+  (p15:sp0 ph20):H (p15 ph20):C
+
+; #---put both on Z
+  (p2 pl2 ph23):C
+
+; #---13C indirect evolution
+  d60 pl12:H
+  d29 cpds2:H
+  (p2 pl2 ph5):C
+  d0
+  (p2 pl2 ph23):C
+  d60 do:H
+
+; #---water suppression (slap)
+  d61 fq=cnst7:H				
+  (p30 pl7 ph20):H
+LabelB, d60
+  (p20:sp30 ph20):H
+  lo to LabelB times l30
+  d61 fq=0:H
+
+
+; #---bring c13 back
+  (p2 pl2 ph15):C
+
+; #---reverse cp
+  (p17:sp3 ph20):H (p17 pl17 ph17):C	
+
+
+; #---CH REDOR/DEDOR
+  d24
+7 d25
+  (p10 pl40 ph10^):C
+  d25
+  d25
+  (p10 pl40 ph10^):C
+  d25
+  lo to 7 times l1
+  d26
+
+
+  d8
+  (center 
+     (p9 pl9 ph9):H 
+     (p5 pl40 ph20):C
+  )
+  d8
+
+  d26
+8 d25
+  (p10 pl40 ph10^):C
+  d25
+  d25
+  (p10 pl40 ph10^):C
+  d25
+  lo to 8 times l1
+  "d27 = d24 - d60 - de"
+  d27
+
+
+; #---detect c13
+  d60 pl13:C
+  go=Start ph31	cpds3:C finally do:C
+  d60 do:C
+
+; #---write
+  d58 wr #0 if #0 zd
+
+; #---increment c13 redor blocks
+11 d63 iu1
+   lo to 11 times l2
+  lo to Start times ni
+
+; #---quadrature
+  "l1 = 0"
+  d63 ip5
+  lo to Start times 2
+
+; #---t1 increment
+  d63 id0
+  lo to Start times ni2
+
+HaltAcqu, d58
+exit
+
+; #---phase tables
+; min=16, ns=16*n, full=32*n
+  ph1  = 1 3
+  ph5 = 1
+  ph15 = {1}*16 {3}*16
+  ph17 = 0 0 2 2
+  ph9  = 0 0 0 0 1 1 1 1 2 2 2 2 3 3 3 3
+  ph31 = 0 2 2 0 2 0 0 2 0 2 2 0 2 0 0 2
+         2 0 0 2 0 2 2 0 2 0 0 2 0 2 2 0
+
+  ph10 = 0 1 0 1 1 0 1 0
+
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3 
+
