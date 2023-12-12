@@ -1,0 +1,52 @@
+; h(CO)CACONH 4D correlation
+
+# define H f1
+# define C f2
+# define N f3
+
+; #---mas
+  define delay taur
+  "taur = 1s / cnst50"
+
+; #---defult delays
+  "d63 = 10u"
+  "d62 = 2u"
+  "d61 = 1u"
+  "d60 = 0.1u"
+  "d59 = 10.0m"
+
+
+; #---4d increments and first points
+  "in0 = inf1"
+  "in10 = inf2"
+  "in20 = inf3"
+  "d0 = in0 / 2"
+  "d10 = in10 / 2"
+  "d20 = in20 / 2"
+
+
+; #---------#
+; #  START  #
+; #---------#
+
+
+Pre, ze
+
+Start, d1
+
+; #---protection
+  if "d0 > 20m" goto HaltAcqu
+  if "d10 > 20m" goto HaltAcqu
+  if "d20 > 20ms" goto HaltAcqu
+
+; #---confirm offsets
+  d62 fq=0:H
+  d62 fq=0:C
+  d62 fq=0:N
+
+
+; #---90+cp
+
+  (p1 pl1 ph1):H
+  (p12:sp12 ph20):C (p12:sp24 ph
+

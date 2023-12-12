@@ -1,0 +1,130 @@
+; hCO(CA)NH 3D correlation
+
+# define H f1
+# define C f2
+# define N f3
+
+; #---mas
+  define delay taur
+  "taur = 1s / cnst50"
+
+; #---defult delays
+  "d63 = 10u"
+  "d62 = 2u"
+  "d61 = 1u"
+  "d60 = 0.1u"
+  "d59 = 10.0m"
+
+; #---2d statements
+  "in0 = inf1"
+  "in10 = inf2"
+  aqseq 312
+
+# ifdef n_half_dwell
+  "d10 = (in10 / 2) - (4 * d60)"
+# endif
+# ifdef c_half_dwell
+  "d0 = (in0 / 2) - (4 * d60)"
+# endif
+
+
+
+; #---------#
+; #  START  #
+; #---------#
+
+
+Pre, ze
+
+Start, d1
+
+; #---protection
+  if "d0 > 20m" goto HaltAcqu
+  if "d10 > 20m" goto HaltAcqu
+
+
+; #---confirm offsets
+  d62 fq=0:H
+  d62 fq=0:C
+
+
+; #---90 and cp to N
+  (p1 pl1 ph1):H
+  (p12:sp12 ph20):H (p12:sp24 ph16):C
+
+
+; #---13CO t1 evolution (on resonance)
+  d60 pl11:H
+  d60 cpds1:H
+  d0*0.5 
+  (center (p58:sp58 ph2 p2*2 pl2 ph20):C (p3*2 pl3 ph20):N)
+  d0*0.5
+  d60
+  d60 do:H
+
+
+; #---CO to CA
+# ifdef trim
+  (p29 pl2 ph21):C
+# endif
+  (p22:sp22 ph20):C
+
+
+; #---cp CA to N (2nd)
+  (p23:sp23 ph20):C (p23:sp35 ph17):N
+
+
+; #---15N t2 evolution
+  d60 pl11:H 
+  d60 cpds1:H
+  (center (d10) (p2 pl2 ph21 p2*2 pl2 ph20 p2 pl2 ph21):C)
+  d60
+  d60 do:H
+
+
+; #---water suppression
+  (p3 pl3 ph21):N
+  d62 fq=cnst17:H
+  d60 pl17:H
+  d60 cpds7:H 
+  d17
+  d60 do:H
+  d62 fq=0:H
+  (p3 pl3 ph3):N
+
+
+; #---reverse cp N to H
+  (p31:sp16 ph20):H (p31:sp31 ph18):N
+
+
+; #---acquire
+  d60 pl22:C pl33:N
+  go=Start ph31 cpds2:C cpds3:N finally do:C do:N
+
+
+; #---write 
+  d59 mc #0 to Start
+  F1PH(calph(ph16, +90), caldel(d0, +in0))
+  F2PH(calph(ph17, +90), caldel(d10, +in10))
+
+
+HaltAcqu, d63 
+exit
+
+; #---phases
+;ns: 16*n
+   ph1 = 1 3
+  ph16 = 0
+   ph2 = 0 0 1 1
+  ph17 = {0}*8 {2}*8
+   ph3 = {1}*4 {3}*4
+  ph18 = {0}*16 {2}*16
+  ph31 = 0 2 2 0 2 0 0 2
+         2 0 0 2 0 2 2 0
+         2 0 0 2 0 2 2 0
+         0 2 2 0 2 0 0 2
+
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3

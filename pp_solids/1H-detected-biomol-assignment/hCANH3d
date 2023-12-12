@@ -1,0 +1,283 @@
+; hCANH 3D
+
+# define H f1
+# define C f2
+# define N f3
+
+; #---mas
+  define delay taur
+  "taur = 1s / cnst50"
+
+; #---defult delays
+  "d63 = 10u"
+  "d62 = 2u"
+  "d61 = 1u"
+  "d60 = 0.1u"
+  "d59 = 10.0m"
+
+ 
+; #---2d statements
+  "in0 = inf1"
+  "in10 = inf2"
+  aqseq 312
+# ifdef c_half_dwell
+  "d0 = (in0 / 2) - (4 * d60)"
+# endif
+# ifdef n_half_dwell
+  "d10 = (in10 / 2) - (4 * d60) - (2 * d62)"
+# endif
+
+
+
+Pre, ze
+
+Start, d1
+
+; #---protection
+  if "d0 > 20m" goto HaltAcqu
+  if "d10 > 20m" goto HaltAcqu
+
+
+; #---90 and cp
+  (p1 pl1 ph1):H
+  (p12:sp12 ph21):H (p12:sp24 ph15):C
+
+# ifdef cal_C90
+  (p29 pl29 ph21):C
+# endif
+
+# ifdef C_echo
+  d60 pl11:H
+  d60 cpds1:H
+  d20*0.5
+  (p52:sp52 ph10):C
+  d20*0.5
+  d60 do:H
+  d60
+# endif
+
+# ifdef sel_cal90
+  (p52:sp52 ph21):C
+# endif
+
+
+# ifndef ncopt
+; #---carbonyl selective pulse
+  d60 pl11:H
+  d60 cpds1:H
+  (p58:sp58 ph20):C  
+  d60
+  d60
+
+; #---calpha selective 180
+  (p55:sp55 ph20):C
+
+
+; #---13C t1 evolution 
+  d60
+  d60
+  d0*0.5
+  (center (p58:sp58 ph20):C (p3*2 pl3 ph20):N)  
+  d0*0.5
+  d60
+  d60 do:H
+# endif
+
+; #---CA to N CP
+  (p23:sp23 ph20):C (p23:sp35 ph2):N
+
+# ifndef ncopt
+; #---15N t2 evolution
+  d60 pl11:f1 
+  d60 cpds1:H
+  d62 fq=cnst57:C 
+  (center (d10) (p2 pl2 ph20 p2*2 pl2 ph21 p2 pl2 ph20):C)
+  d62 fq=0:C
+  d60
+  d60 do:H
+# endif
+
+; #---water suppression
+  (p3 pl3 ph5):N
+  d62 fq=cnst17:H
+  d60 pl17:H
+  d60 cpds7:H 
+  d17
+  d60 do:H
+  d62 fq=0:H
+  (p3 pl3 ph6):N
+
+
+; #---reverse cp N to H
+  (p31:sp16 ph20):H (p31:sp31 ph11):N
+
+
+; #---acquire
+  d60 pl22:C pl33:N
+  go=Start ph31 cpds2:C cpds3:N finally do:C do:N
+
+
+; #---write 
+  d59 mc #0 to Start
+  F1PH(calph(ph15, +90), caldel(d0, +in0))
+  F2PH(calph(ph2, +90), caldel(d10, +in10))
+
+HaltAcqu, d63 
+exit
+
+; #---phases
+   ph1 = 0 2
+  ph15 = 0
+   ph2 = 1
+   ph5 = 0 
+   ph6 = 0 0 2 2
+  ph11 = 1 1 1 1 3 3 3 3
+# ifdef C_echo
+  ph10 = 0 0 0 0 0 0 0 0 1 1 1 1 1 1 1 1
+  ph31 = 1 3 3 1 3 1 1 3 3 1 1 3 1 3 3 1
+# else
+  ph31 = 1 3 3 1 3 1 1 3
+# endif
+
+  ph20 = 0
+  ph21 = 1
+  ph22 = 2
+  ph23 = 3
+
+; #----------------#
+; #    PRESET      #
+; #----------------#
+
+/* >>> # defaults
+rf = get_rfs()
+mas = get_constant(50)
+taur = 1e6 / mas
+
+if flag("rf"):
+  pprint(rf)
+<<< */
+
+/* >>> # shapes
+if flag("shapes", "spnam"):
+  setpar("SPOAL 12", 0.0)
+  setpar("SPOAL 22", 1.0)
+  setpar("SPOAL 26", 0.5)
+  setpar("SPOAL 23", 0.0)
+  setpar("SPOAL 33", 1.0)
+  setpar("SPOAL 14", 1.0)
+  setpar("SPOAL 31", 0.0)
+  setpar("SPNAM 12", "tan_70_100.1000.krm")
+  setpar("SPNAM 22", "rectangle.1000.krm")
+  setpar("SPNAM 26", "Q3.1000.krm")
+  setpar("SPNAM 23", "tan_60_100.1000.krm")
+  setpar("SPNAM 33", "rectangle.krm")
+  setpar("SPNAM 14", "tan_100_70.1000.krm")
+  setpar("SPNAM 31", "rectangle.krm")
+
+<<< */
+
+/* >>> # cross polarization
+if flag("cp"):
+
+  hc = cp.ch(mas)
+  hc_C = rf_to_pwl(hc["C"], rf["C"])
+  hc_H = rf_to_pwl(hc["H"] / 0.85, rf["H"])
+  setpar("SPW 12", hc_H)
+  setpar("SPW 22", hc_C)
+  setpar("P 12", 2000)
+
+  can = cp.nc(mas)
+  can_N = rf_to_pwl(can["C"] / 0.80, rf["C"])
+  can_C = rf_to_pwl(can["N"], rf["N"])
+  setpar("SPW 23", can_C)
+  setpar("SPW 33", can_N)
+  setpar("P 23", 7000)
+
+  nh = cp.nh(mas)
+  nh_N = rf_to_pwl(nh["N"], rf["N"])
+  nh_H = rf_to_pwl(nh["H"] / 0.85, rf["H"]) 
+  setpar("SPW 31", nh_N)
+  setpar("SPW 14", nh_H)
+  setpar("P 31", 200)
+
+  if not flag("q", "quiet"):
+    pprint("""
+      Done setting the CP conditions to these values:
+      HC={}
+      CaN={}
+      NH={}""".format(hc, can, nh)
+    )
+<<< */
+
+/* >>> # selective pulses  
+if flag("selective"):
+  from math import pi
+
+  c13_freq = get("BF2", dtype=float)
+  ca_bandwidth = single_input("13C_ALPHA bandwidth (ppm): ", "35", float)
+  sel_plen = pi / (ca_bandwidth * c13_freq / 1e6)
+  sel_rf = 0.15147 * (0.5e6 / sel_plen)
+  sel_pwl = rf_to_pwl(sel_rf, rf["C"])
+    
+  setpar("P 26", sel_plen)
+  setpar("SPNAM 26", "Q3.1000.krm")
+  setpar("SPW 26", sel_pwl)
+<<< */
+
+/* >>> # decoupling
+if flag("hdec", "dec"):
+  N = get_counter(11)
+  N = single_input("N (N*taur is the cycle time for rcwapa dec): ", str(N), int)
+  setpar("L 11", N)
+  setpar("PLW 11", rf_to_pwl(13e3, rf["H"]))
+  setpar("PCPD 1", N*taur)
+  setpar("CPDPRG 1", "rcwapa_lowpower.pcpd")
+
+if flag("cdec", "dec"):
+  setpar("PLW 22", rf_to_pwl(18e3, rf["C"]))
+  setpar("CPDPRG 2", "dipsi2.pcpd")
+  setpar("PCPD 2", 13.89)
+
+if flag("ndec", "dec"):
+  setpar("PLW 33", rf_to_pwl(8e3, rf["C"]))
+  setpar("CPDPRG 3", "waltz16.pcpd")
+  setpar("PCPD 3", 31.25)
+
+if flag("water"):
+  ws_nutation = rf_to_pwl(20e3, rf["H"])
+  setpar("PLW 17", ws_nutation)
+  setpar("P 17", 10000)
+  setpar("D 17", 0.120)
+  setpar("CPDPRG 7", "mississipi.p17.krm")
+<<< */
+
+/* >>> # multidimensional setup
+if flag("3d"):
+  cmds = [
+    ["{} FnMODE States-TPPI".format(i) for i in (1, 2)],
+    "3 AQORDER 3-1-2",
+    "1 SWH 4000",
+    "2 SWH 2500",
+    "2 TD 48",
+    "1 TD 64",
+    "3 AQ 15m", 
+  ]
+  run(*cmds)
+<<< */
+
+/* >>> # processing parameters
+
+if flag("proc"):
+  cmds = [
+    ["{} WDW GM".format(i) for i in (1, 2, 3)],
+    ["{} PH_mod pk".format(i) for i in (1, 2, 3)],
+    ["{} PHC0 90".format(i) for i in (1, 2)],
+    ["{} PHC1 -180".format(i) for i in (1, 2)],
+    ["{} SI 128".format(i) for i in (1, 2)],
+    "3 SI 2048",
+    ["{} FCOR 1.0".format(i) for i in (1, 2)],
+    ["{} MC2 States-TPPI".format(i) for i in (1, 2)],
+    ["{} FT_mod fsc".format(i) for i in (1, 2)],
+  ]
+  run(*cmds)
+<<< */
