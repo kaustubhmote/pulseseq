@@ -1,1 +1,0 @@
-# Multiple Acquisition Experiments
