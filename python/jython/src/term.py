@@ -35,5 +35,5 @@ elif argv[1] == "p":
 # choose one of the lines below depending on your terminal emulator
 # or add a line
 
-os.system("kitty -d {}".format(dirc))
+os.system("/opt/kitty/latest/bin/kitty -d {}".format(dirc))
 # os.system("gnome-terminal --working-directory={}".format(dirc))
