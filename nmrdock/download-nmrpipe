@@ -1,0 +1,11 @@
+#!/usr/bin/sh
+mkdir -p nmrpipe
+cd nmrpipe
+curl -O https://www.ibbr.umd.edu/nmrpipe/install.com
+curl -O https://www.ibbr.umd.edu/nmrpipe/binval.com
+curl -O https://www.ibbr.umd.edu/nmrpipe/NMRPipeX.tZ
+curl -O https://www.ibbr.umd.edu/nmrpipe/s.tZ
+curl -O https://www.ibbr.umd.edu/nmrpipe/dyn.tZ
+curl -O https://www.ibbr.umd.edu/nmrpipe/talos_nmrPipe.tZ 
+curl -O https://www.ibbr.umd.edu/nmrpipe/plugin.smile.tZ
+cd ../

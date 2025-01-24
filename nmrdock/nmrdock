@@ -1,0 +1,4 @@
+#!/usr/bin/bash
+
+docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v ./:/home/nmrdock/data/ nmrdock22.04:11.7 sh -c "cd /home/nmrdock/data && /bin/bash"
+
