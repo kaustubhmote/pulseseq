@@ -1,4 +1,13 @@
 #!/usr/bin/bash
 
-docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v ./:/home/nmrdock/data/ nmrdock22.04:11.7 sh -c "cd /home/nmrdock/data && /bin/bash"
+if [ $# -ne 1 ]; then
+  echo "Please provide a version number. Example: nmrdock 12.1"
+  echo "These are the available versions:"
+  echo "`docker image ls | grep nmrdock`"
+  exit 1
+fi
+
+VERSION=$1
+
+docker run -it -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix -v ./:/home/nmrdock/data/ nmrdock22.04:$VERSION sh -c "cd /home/nmrdock/data && /bin/bash"
 
