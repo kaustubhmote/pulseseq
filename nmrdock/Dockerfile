@@ -37,6 +37,6 @@ RUN cd home/nmrdock/nmrpipe \
 && rm *.tZ binval.com install.com \
 && rm -r nmrbin.mac*
 
-ENV PATH=/home/nmrdock/nmrpipe/nmrbin.linux235_64:$PATH
-ENV PATH=/home/nmrdock/nmrpipe/com:$PATH
-ENV PATH=/home/nmrdock/nmr_wrappers:$PATH
+COPY bashrc_nmrpipe /home/nmrdock
+RUN cat /home/nmrdock/bashrc_nmrpipe >> /home/nmrdock/.bashrc \
+  && rm /home/nmrdock/bashrc_nmrpipe

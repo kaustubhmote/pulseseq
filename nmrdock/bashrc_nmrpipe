@@ -1,0 +1,49 @@
+# nmrpipe
+
+export NMRBASE=/home/nmrdock/nmrpipe
+export NMRTXT=$NMRBASE/nmrtxt 
+export NMRCOM=$NMRBASE/com
+export NMRBIN=$NMRBASE/nmrbin.linux212_64
+export NMRCHECK=ALL
+export NMR_CONT=CORRECT_ALL
+export NMR_TCLTK8=TRUE 
+export NMRPIPE_TCL_LIB=$NMRBASE/nmrtcl/tcl8.4
+export TCL_LIBRARY=$NMRBASE/nmrtcl/tcl8.4 
+export TK_LIBRARY=$NMRBASE/nmrbin.linux212_64/lib/
+export BLT_LIBRARY=$NMRBASE/nmrtcl/blt2.4z
+export NMRPIPE_TCL_LIB=$NMRBASE/nmrtcl/tcl8.4
+export NMRPIPE_TK_LIB=$NMRBASE/nmrtcl/tk8.4
+export NMRPIPE_BLT_LIB=$NMRBASE/nmrtcl/blt2.4z
+export TCLPATH=$NMRBASE/com
+export NMR_PLUGIN_FN=SMILE
+export NMR_PLUGIN_EXE=nusPipe
+export NMR_PLUGIN_INFO="[-nDim -sample sName ...] MD NUS Reconstruction"
+
+#---mfr
+export DYNAMO_KEY=2002084
+export DYNAMO_DIR=$NMRBASE/dynamo
+export DYNAMO_PARAMS=$NMRBASE/dynamo/params
+export SURF_DIR=$NMRBASE/dynamo/surface
+export PDBH_BASE=$NMRBASE/mfr
+export PDBH_DIR=$PDBH_BASE/PDBH
+export PDBH_LIST=$PDBH_BASE/pdbH.list
+export PDBH_TAB=$PDBH_DIR/resolution.tab
+export talosDir=$NMRBASE/talos
+export SPARTAP_DIR=$NMRBASE/spartaplus/
+export NMRBINTYPE=linux9
+
+export PATH=$PATH:$NMRBASE
+export PATH=$PATH:$NMRBASE/nmrbin.linux212_64
+export PATH=$PATH:$NMRBASE/nmrtxt
+export PATH=$PATH:$NMRBASE/nmrtcl/tcl8.4
+export PATH=$PATH:$NMRBASE/com
+export PATH=$PATH:$NMRBASE/dynamo/tcl
+export PATH=$PATH:$NMRBASE/dynamo/com
+export PATH=$PATH:$NMRBASE
+export PATH=$PATH:$NMRBASE/nmrbin.linux212_64
+export PATH=$PATH:$NMRBASE/nmrtxt
+export PATH=$PATH:$NMRBASE/nmrtcl/tcl8.4
+export PATH=$PATH:$NMRBASE/com
+export PATH=$PATH:$NMRBASE/dynamo/tcl
+export PATH=$PATH:$NMRBASE/dynamo/com
+
