@@ -1,0 +1,229 @@
+; #---Theta-REDOR after 2D-hNH
+
+;zgoptns: -Dset_l3, -Doned, -Dcnst_duty, -Dcomp_180
+; -Dset_l3: setting of the number of redor recoupling loops to a fixed value
+; -Doned: 1D version for optimization/testing
+; -Dcnst_duty: constant duty cycle for indirect evolution
+; -Dcomp_180: a composite 180 instead of theta pulse in the center (this is standard redor)
+
+;p1: 1H 90 @plw1
+;p2: 13C 90 @plw2
+;p3: 15N 90 @ plw3
+;p13: 1H to 15N cp
+;sp13: 1H rf: 1H to 15N CP
+;sp34: 15N rf: 1H to 15N CP
+;p31: 15N to 1H cp
+;sp16: 1H rf: 15N to 1H CP
+;sp31: 15N rf: 15N to 1H CP
+;p30: REDOR recoupling pulse on 15N @ plw30
+;p39: Theta-Pulse on 15N @ plw39
+;pl11: decoupling power on 1H (cpds1)
+;pl33: decoupling power on 15N (cpds3)
+;d34: epsilon-shift. Use taur/2 for theta-redor
+;l9: number of rotor periods for central block
+;l3: loops for redor
+
+
+# define H f1
+# define C f2 
+# define N f3
+
+; #---mas
+  define delay taur
+  "taur = 1s / cnst50"
+
+; #---defult delays
+  "d63 = 10u"
+  "d62 = 2u"
+  "d61 = 0.5u"
+  "d60 = 0.1u"
+  "d58 = 1.0m"
+
+; #---2d statements
+  "in0 = inf2"
+# ifdef oned
+  "d0 = 0.1u"
+# else
+  "d0 = (in0 / 2) - (d60 * 4)"
+# endif
+# ifdef cnst_duty
+  "d30 = d0 + (td2 - 2) * in0 / 2 + 10u"
+# endif
+
+
+; #---REDOR
+  define delay n_redor_time
+  "d35 = 1 * (taur / 4.0) - (p30 / 2.0)"
+# ifndef set_l3
+  "n_redor_time = 2 * taur * (td1 - 1) + 0.1u"
+# else
+  "n_redor_time = 2 * taur * l3 + 0.1u"
+# endif
+
+; #---kappa scaling
+  "cnst12 = cos(0.5 * PI * (2 * p30 / taur)) / (1 - pow(2 * p30 / taur, 2))"
+; #---epsilon scaling
+  "cnst9 = abs(sin(2 * PI * ((d34 + d35 + p30 * 0.5) / taur)))"
+  "d36 = 2 * taur - d34"
+; #---central rotor period
+  "d9 = 2 * l9 * taur"
+
+# ifndef set_l3
+  "l3 = 0"
+# endif
+
+; #---set acq order
+  aqseq 312
+
+; #---------#
+; #  START  #
+; #---------#
+
+Pre, ze
+
+Check, d63
+
+  if "taur < 100u" goto pass_mas
+  print "taur too long (>100u). Is MAS < 10kHz?"
+  goto HaltAcqu
+pass_mas, d60
+
+  if "p13 < 10m" goto pass_p13
+  print "fowrward cp (p13) too long (>10m). Aborting"
+  goto HaltAcqu
+pass_p13, d60
+
+  if "p31 < 10m" goto pass_p31
+  print "reverse cp (p31) too long (>10m). Aborting"
+  goto HaltAcqu
+pass_p31, d60
+
+  if "aq < 30m" goto pass_aq
+  print "aq too long (>30m). Aborting"
+  goto HaltAcqu
+pass_aq, d60
+
+  if "d17 < 200m" goto pass_d17
+  print "d17 too long (>200m). Aborting"
+  goto HaltAcqu
+pass_d17, d60
+
+
+# ifndef oned
+  if "d0 + ((td1 - 2) * in0 / 2) < 50m" goto pass_d0
+  print "final d0 too long (>50m). Aborting"
+  goto HaltAcqu
+pass_d0, d60
+# endif
+
+# ifndef oned
+  if "aq + d17 + d0 + ((td1 - 2) * in0) < (0.3 * d1)" goto pass_duty
+  print "duty cycle too long (> 30%). Aborting"
+  goto HaltAcqu
+pass_duty, d60
+# endif
+
+
+; #---delays for test
+  define delay test
+  "test = 1u * cnst9"
+  test
+  "test = 1u * cnst12"
+  test
+  n_redor_time
+
+
+Start, d1
+
+; #---reset redor phase
+  d63 rpp11
+
+; #---90 cp
+  (p1 pl1 ph1):H
+# ifdef cnst_duty
+  (p13:sp13 ph20):H (p13:sp34 ph16 p3 pl3 ph21):N
+# else
+  (p13:sp13 ph20):H (p13:sp34 ph16):N
+# endif
+
+# ifndef oned
+; #---15N evolution
+  d60 pl11:H
+  d60 cpds1:H
+# ifdef cnst_duty
+  d30
+  (p3 pl3 ph23):N
+  d60
+  d60
+# endif
+  (center (d0) (p2 pl2 ph20 p2*2 pl2 ph21 p2 pl2 ph20):C)
+  d60
+  d60
+# endif
+  (p3 pl3 ph3):N
+  d60 do:H
+
+; #---water suppression
+  d62 fq=cnst17:H
+  d60 pl17:H
+  d60 cpds7:H 
+  d17
+  d60 do:H
+  d62 fq=0:H
+
+  (p3 pl3 ph4):N
+  (p31:sp16 ph20):H (p31:sp31 ph5):N
+
+; #---NH REDOR/DEDOR
+  d34
+5 d35
+  (p30 pl30 ph11^):N
+  d35
+  d35
+  (p30 pl30 ph11^):N
+  d35
+  lo to 5 times l3
+  d36
+
+# ifdef comp_180
+  (center (d9) (p1*2 pl1 ph9):H (p39*0.5 pl39 ph20 p39 pl39 ph21 p39*0.5 pl39 ph20):N)
+# else
+  (center (d9) (p1*2 pl1 ph9):H (p39 pl39 ph20):N)
+# endif
+
+  d36
+6 d35
+  (p30 pl30 ph11^):N
+  d35
+  d35
+  (p30 pl30 ph11^):N
+  d35
+  lo to 6 times l3
+  "d27 = d34 - d60 -de"
+  d27
+
+; #---detect
+  d60 pl33:N
+  go=Start ph31 cpds3:N finally do:N 
+
+; #---2D
+  d58 mc #0 to Start
+  F1QF(calclc(l3, 1))  
+  F2PH(calph(ph3, +90), caldel(d0, +in0) & caldel(d30, -in0))
+
+HaltAcqu, d63
+exit
+
+; #---phase tables
+;ns: 8, 16, 32, 32*n
+  ph1  = 1
+  ph16 = {0}*16 {2}*16
+  ph3  = {1}*8 {3}*8
+  ph4  = 3
+  ph5  = 0 2
+  ph9  = 0 0 1 1 2 2 3 3
+  ph11 = 0 1 0 1 1 0 1 0
+  ph31 = 0 2 2 0 0 2 2 0
+         2 0 0 2 2 0 0 2 
+         2 0 0 2 2 0 0 2 
+         0 2 2 0 0 2 2 0
