@@ -40,7 +40,7 @@ name, curdir, curexpno, curprocno = argv
 
 # get the parameters from the user
 oexpno = curexpno + "00"
-iexpno, oexpno, numexpt, f1coeff, overwrite = dialog(
+iexpno, oexpno, numexpt, f1coeff, pdata = dialog(
     header="Combine Experiments",
     info="Combine Mutiple experiments with f1coeffs",
     labels=[
@@ -48,28 +48,20 @@ iexpno, oexpno, numexpt, f1coeff, overwrite = dialog(
         "EXPNO for combined dataset",
         "Number of EXPNOs to combine",
         "F1-COEFF (comma/whitespace separetd)",
-        "Overwrite",
+        "Write pdata?",
     ],
-    types=["e", "e", "e", "e", "c"],
-    values=[curexpno, oexpno, "2", "1 1", ""],
+    types=["e", "e", "e", "e", "e"],
+    values=[curexpno, oexpno, "2", "1 1", "1"],
     comments=["", "", "(Optional)", "", ""],
 )
 
 
 # check if a single experiment number is given
-iexpno = iexpno.replace(",", " ").split()
-iexpno = [int(i) for i in iexpno]
+iexpno = iexpno.split()
+pdata = int(pdata)
 
 
 # Check if an output directory exists if overwriting is not allowed
-if "selected" not in overwrite:
-    overwrite = False
-    if os.path.isdir(os.path.join(curdir, oexpno)):
-        raise ValueError("Expno {} exists!".format(oexpno))
-else:
-    overwrite = True
-
-
 if len(iexpno) == 1:
     numexpt = int(numexpt)
     iexpno = list(range(iexpno[0], iexpno[0] + numexpt))
@@ -99,7 +91,7 @@ for expno in iexpno:
     # get data dimensions
     ndim = dic["acqus"]["PARMODE"] + 1
     if ndim > 1:
-        inc = np.product(data.shape[:-1])
+        inc = np.prod(data.shape[:-1])
         data = data.reshape(inc, -1)
         datashapes.append(data.shape)
 
@@ -136,8 +128,7 @@ ng.bruker.write(
     odir,
     dic,
     combined,
-    overwrite=overwrite,
-    write_procs=True,
-    pdata_folder=True,
+    write_procs=pdata,
+    pdata_folder=pdata,
     write_prog=False,
 )
