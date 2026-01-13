@@ -1,6 +1,6 @@
 # PULSESEQ
 
-Code associated with NMR-related research going on in our lab at TIFR Hyderabad (https://www.tifrh.res.in/~kaustubh). 
+Code associated with NMR-related research going on in our lab at TIFR Hyderabad (https://www.tifrh.res.in/~krmote). 
 
 
 ### `SIMPSON`
